@@ -1,0 +1,270 @@
+:root {
+  --primary-blue: #0A4DB8;
+  --secondary-blue: #003D99;
+  --primary-green: #7AC943;
+  --secondary-green: #5FAF2F;
+  --light-bg: #F5FAF3;
+  --white: #ffffff;
+  --text-dark: #1b2b4b;
+  --text-light: #6c7a89;
+  --border-color: #dce8d8;
+
+  /* Header-specific tokens */
+  --header-bg: rgba(0, 38, 90, 0.82);
+  /* deep navy glass */
+  --header-border: rgba(10, 77, 184, 0.25);
+  --header-surface: rgba(10, 77, 184, 0.12);
+  --header-hover: rgba(10, 77, 184, 0.18);
+  --header-stroke: rgba(122, 201, 67, 0.30);
+}
+
+/* ==========================================================================
+   HEADER SHELL
+   ========================================================================== */
+
+.premium-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 40px;
+  background-color: var(--header-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--header-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-sizing: border-box;
+  height: 72px;
+}
+
+.header-left-zone,
+.header-right-zone {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-logo-image {
+  height: 38px;
+  width: auto;
+  display: block;
+  filter: brightness(0) invert(1) drop-shadow(0 2px 8px rgba(122, 201, 67, 0.25));
+}
+
+/* ==========================================================================
+   HAMBURGER TRIGGER
+   ========================================================================== */
+
+.hamburger-action-btn {
+  display: none;
+}
+
+/* ==========================================================================
+   PROFILE TRIGGER
+   ========================================================================== */
+
+.profile-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.profile-trigger {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 1px solid var(--header-border);
+  background: var(--header-surface);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 8px;
+}
+
+.profile-trigger:hover {
+  background-color: var(--header-hover);
+  border-color: rgba(122, 201, 67, 0.45);
+  box-shadow: 0 0 0 3px rgba(122, 201, 67, 0.10);
+}
+
+/* Avatar circle */
+.profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.profile-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+  white-space: nowrap;
+}
+
+.profile-chevron {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  transition: transform 0.2s ease;
+}
+
+.profile-trigger[aria-expanded="true"] .profile-chevron {
+  transform: rotate(180deg);
+}
+
+/* ==========================================================================
+   PROFILE DROPDOWN
+   ========================================================================== */
+
+.profile-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 210px;
+  background: linear-gradient(145deg, #0a1f4e 0%, #001a40 100%);
+  border: 1px solid var(--header-border);
+  border-radius: 16px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.30),
+    0 24px 48px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(122, 201, 67, 0.08) inset;
+  z-index: 1000;
+  padding: 6px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.profile-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Arrow */
+.profile-menu::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  right: 18px;
+  width: 10px;
+  height: 10px;
+  background: #0a1f4e;
+  border-left: 1px solid var(--header-border);
+  border-top: 1px solid var(--header-border);
+  transform: rotate(45deg);
+}
+
+/* Dropdown items */
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-decoration: none;
+}
+
+.profile-menu-item:hover {
+  background: var(--header-hover);
+  color: #ffffff;
+}
+
+.profile-menu-item.danger:hover {
+  background: rgba(220, 38, 38, 0.12);
+  color: #f87171;
+}
+
+.profile-menu-divider {
+  height: 1px;
+  background: var(--header-border);
+  margin: 4px 6px;
+}
+
+/* Notification / icon badges in header */
+.header-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--header-border);
+  background: var(--header-surface);
+  color: rgba(255, 255, 255, 0.70);
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.header-icon-btn:hover {
+  background: var(--header-hover);
+  border-color: rgba(122, 201, 67, 0.40);
+  color: #ffffff;
+}
+
+.header-icon-btn .badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary-green);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--header-bg);
+}
+
+/* ==========================================================================
+   MOBILE
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .premium-header {
+    padding: 16px 20px;
+  }
+
+  .hamburger-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--header-surface);
+    border: 1px solid var(--header-border);
+    border-radius: 10px;
+    width: 38px;
+    height: 38px;
+    color: rgba(255, 255, 255, 0.70);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .hamburger-action-btn:hover {
+    color: #fff;
+    border-color: rgba(122, 201, 67, 0.40);
+    background: var(--header-hover);
+  }
+
+  .profile-name {
+    display: none;
+  }
+}

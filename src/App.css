@@ -1,0 +1,107 @@
+/* Clear default restrictions so Admin Layout looks standard and full width */
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Brand Sidebar ── */
+.brand-sidebar {
+  background: linear-gradient(180deg, var(--secondary-blue) 0%, #002a6e 100%);
+  color: rgba(255, 255, 255, 0.80);
+  min-height: 100vh;
+  box-shadow: 2px 0 12px rgba(0, 61, 153, 0.20);
+}
+
+/* ── Brand Logo Container ── */
+.brand-logo-container {
+  background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(122, 201, 67, 0.30);
+}
+
+/* ── Brand Text ── */
+.pharmaco-text {
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #ffffff;
+}
+
+/* ── Sidebar Nav Items ── */
+.brand-sidebar .nav-item {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.70);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border-left: 3px solid transparent;
+}
+
+.brand-sidebar .nav-item:hover {
+  background-color: rgba(122, 201, 67, 0.12);
+  color: var(--primary-green);
+  border-left-color: var(--primary-green);
+}
+
+.brand-sidebar .nav-item.active {
+  background-color: rgba(122, 201, 67, 0.15);
+  color: var(--primary-green);
+  border-left-color: var(--primary-green);
+  font-weight: 600;
+}
+
+/* ── Top Header Bar ── */
+.brand-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(10, 77, 184, 0.06);
+}
+
+/* ── Content Area ── */
+.brand-content {
+  background: var(--light-bg);
+  flex: 1;
+  padding: 24px;
+  min-height: 100vh;
+}
+
+/* ── Cards in Content ── */
+.brand-card {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(10, 77, 184, 0.05);
+}
+
+/* ── Badge / Status ── */
+.brand-badge-success {
+  background: rgba(122, 201, 67, 0.12);
+  color: var(--secondary-green);
+  border: 1px solid rgba(122, 201, 67, 0.25);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.brand-badge-info {
+  background: rgba(10, 77, 184, 0.10);
+  color: var(--primary-blue);
+  border: 1px solid rgba(10, 77, 184, 0.20);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}

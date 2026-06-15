@@ -1,0 +1,64 @@
+:root {
+  --primary-blue: #0A4DB8;
+  --secondary-blue: #003D99;
+
+  --primary-green: #7AC943;
+  --secondary-green: #5FAF2F;
+
+  --light-bg: #F5FAF3;
+  --white: #ffffff;
+
+  --text-dark: #1b2b4b;
+  --text-light: #6c7a89;
+
+  --border-color: #dce8d8;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background-color: var(--light-bg);
+  color: var(--text-dark);
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* ── Brand Primary Button (Blue) ── */
+.btn-brand-primary {
+  background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)) !important;
+  color: white !important;
+  border: none !important;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(10, 77, 184, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-brand-primary:hover {
+  background: linear-gradient(135deg, #0d58d4, var(--primary-blue)) !important;
+  box-shadow: 0 6px 16px rgba(10, 77, 184, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ── Brand Secondary Button (Green) ── */
+.btn-brand-secondary {
+  background: linear-gradient(135deg, var(--primary-green), var(--secondary-green)) !important;
+  color: white !important;
+  border: none !important;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(122, 201, 67, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-brand-secondary:hover {
+  background: linear-gradient(135deg, #89d44e, var(--primary-green)) !important;
+  box-shadow: 0 6px 16px rgba(122, 201, 67, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ── Active sidebar/tab item ── */
+.active-tab-item {
+  border-left: 4px solid var(--primary-green);
+  background-color: rgba(122, 201, 67, 0.08);
+  color: var(--secondary-green) !important;
+}
