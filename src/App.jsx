@@ -24,6 +24,7 @@ import Commissions from "./pages/Commission/Commissions";
 import Reports from "./pages/Report/Reports";
 import Roles from "./pages/Role/Roles";
 import Settings from "./pages/Setting/Settings";
+import AddProperty from "./pages/Properties/AddProperty";
 
 
 
@@ -53,6 +54,7 @@ function App() {
         >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/my-profile" element={<MyProfile />} />
+          <Route path="/add-property" element={<AddProperty />} />
           <Route path="/properties" element={<AllProperties />} />
           <Route path="/property-types" element={<PropertyTypes />} />
           <Route path="/brokers" element={<Brokers />} />

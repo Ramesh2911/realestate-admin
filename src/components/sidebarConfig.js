@@ -152,7 +152,7 @@ export const BROKER_MENU = [
       {
         key: "add-property",
         label: "Add Property",
-        path: "/properties/add",
+        path: "/add-property",
         icon: FaBuilding,
         iconColor: "#7AC943",
       },
