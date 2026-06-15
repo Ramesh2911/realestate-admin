@@ -18,6 +18,12 @@ import Brokers from "./pages/Broker/Brokers";
 import Agents from "./pages/Agent/Agents";
 import Owners from "./pages/Owner/Owners";
 import Leads from "./pages/Lead/Leads";
+import SiteVisits from "./pages/SiteVisit/SiteVisits";
+import Deals from "./pages/Deal/Deals";
+import Commissions from "./pages/Commission/Commissions";
+import Reports from "./pages/Report/Reports";
+import Roles from "./pages/Role/Roles";
+import Settings from "./pages/Setting/Settings";
 
 
 
@@ -53,6 +59,12 @@ function App() {
           <Route path="/agents" element={<Agents />} />
           <Route path="/owners" element={<Owners />} />
           <Route path="/leads" element={<Leads />} />
+          <Route path="/site-visits" element={<SiteVisits />} />
+          <Route path="/deals" element={<Deals />} />
+          <Route path="/commissions" element={<Commissions />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/roles" element={<Roles />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

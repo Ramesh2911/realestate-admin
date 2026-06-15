@@ -80,7 +80,6 @@ export const SUPER_ADMIN_MENU = [
     icon: FaHandshake,
     iconColor: "#0A4DB8",
   },
-
   {
     key: "site-visits",
     label: "Site Visits",
