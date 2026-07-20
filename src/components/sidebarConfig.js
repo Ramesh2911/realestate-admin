@@ -4,6 +4,7 @@ import {
   FaBuilding,
   FaHome,
   FaUserTie,
+  FaUserFriends,
   FaHandshake,
   FaCalendarCheck,
   FaFileContract,
@@ -11,13 +12,17 @@ import {
   FaChartBar,
   FaCog,
   FaUserShield,
+  FaClipboardList,
+  FaBell,
+  FaNewspaper,
+  FaQuestionCircle,
+  FaEnvelope,
+  FaCreditCard,
+  FaCogs
 } from "react-icons/fa";
 
-/* =====================================================
-   SUPER ADMIN MENU
-===================================================== */
-
 export const SUPER_ADMIN_MENU = [
+
   {
     key: "dashboard",
     label: "Dashboard",
@@ -27,159 +32,94 @@ export const SUPER_ADMIN_MENU = [
   },
 
   {
-    key: "property-management",
-    label: "Property",
-    icon: FaHome,
-    iconColor: "#0A4DB8",
-    type: "dropdown",
-    children: [
-      {
-        key: "all-properties",
-        label: "All Properties",
-        path: "/properties",
-        icon: FaBuilding,
-        iconColor: "#0A4DB8",
-      },
-      {
-        key: "property-types",
-        label: "Property Types",
-        path: "/property-types",
-        icon: FaBuilding,
-        iconColor: "#7AC943",
-      },
-    ],
-  },
-  {
-    key: "broker-management",
-    label: "Broker",
-    path: "/brokers",
-    icon: FaUserTie,
-    iconColor: "#7AC943",
-  },
-
-  {
-    key: "agent-management",
-    label: "Agent",
-    path: "/agents",
-    icon: FaUsers,
-    iconColor: "#0A4DB8",
-  },
-
-  {
-    key: "owner-management",
-    label: "Property Owners",
-    path: "/owners",
-    icon: FaUsers,
-    iconColor: "#7AC943",
-  },
-
-  {
-    key: "lead-management",
-    label: "Lead",
-    path: "/leads",
-    icon: FaHandshake,
-    iconColor: "#0A4DB8",
-  },
-  {
-    key: "site-visits",
-    label: "Site Visits",
-    path: "/site-visits",
-    icon: FaCalendarCheck,
-    iconColor: "#7AC943",
-  },
-
-  {
-    key: "deals",
-    label: "Deals",
-    path: "/deals",
-    icon: FaFileContract,
-    iconColor: "#0A4DB8",
-  },
-
-  {
-    key: "commissions",
-    label: "Commission",
-    path: "/commissions",
-    icon: FaMoneyBillWave,
-    iconColor: "#7AC943",
-  },
-
-  {
-    key: "reports",
-    label: "Reports & Analytics",
-    path: "/reports",
-    icon: FaChartBar,
-    iconColor: "#0A4DB8",
-  },
-
-  {
-    key: "roles",
-    label: "Roles",
-    path: "/roles",
+    key: "admin-management",
+    label: "Admin Management",
+    path: "/admins",
     icon: FaUserShield,
     iconColor: "#7AC943",
   },
 
   {
-    key: "settings",
-    label: "Settings",
-    path: "/settings",
-    icon: FaCog,
-    iconColor: "#0A4DB8",
-  },
-];
-
-/* =====================================================
-   BROKER MENU
-===================================================== */
-
-export const BROKER_MENU = [
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    path: "/dashboard",
-    icon: FaTachometerAlt,
+    key: "roles",
+    label: "Role & Permission",
+    path: "/roles",
+    icon: FaUserShield,
     iconColor: "#0A4DB8",
   },
 
   {
-    key: "properties",
-    label: "Properties",
-    icon: FaHome,
-    iconColor: "#0A4DB8",
+    key: "users",
+    label: "User Management",
+    icon: FaUsers,
     type: "dropdown",
+    iconColor: "#7AC943",
+
     children: [
+
       {
-        key: "add-property",
-        label: "Add Property",
-        path: "/add-property",
-        icon: FaBuilding,
-        iconColor: "#7AC943",
+        key: "owners",
+        label: "Owners",
+        path: "/owners",
+        icon: FaUsers,
       },
+
       {
-        key: "all-properties",
-        label: "My Properties",
+        key: "brokers",
+        label: "Brokers",
+        path: "/brokers",
+        icon: FaUserTie,
+      },
+
+      {
+        key: "developers",
+        label: "Developers",
+        path: "/developers",
+        icon: FaBuilding,
+      },
+
+      {
+        key: "buyers",
+        label: "Buyers",
+        path: "/buyers",
+        icon: FaUserFriends,
+      },
+
+    ]
+
+  },
+
+  {
+    key: "property",
+    label: "Property",
+    icon: FaHome,
+    type: "dropdown",
+    iconColor: "#0A4DB8",
+
+    children: [
+
+      {
+        key: "properties",
+        label: "All Properties",
         path: "/properties",
         icon: FaBuilding,
-        iconColor: "#0A4DB8",
       },
-    ],
-  },
 
-  {
-    key: "agents",
-    label: "My Agents",
-    path: "/agents",
-    icon: FaUsers,
-    iconColor: "#7AC943",
-  },
+      {
+        key: "property-type",
+        label: "Property Types",
+        path: "/property-types",
+        icon: FaBuilding,
+      },
 
-  {
-    key: "owners",
-    label: "Property Owners",
-    path: "/owners",
-    icon: FaUsers,
-    iconColor: "#0A4DB8",
+      {
+        key: "approval",
+        label: "Property Approval",
+        path: "/property-approval",
+        icon: FaClipboardList,
+      }
+
+    ]
+
   },
 
   {
@@ -199,11 +139,19 @@ export const BROKER_MENU = [
   },
 
   {
-    key: "deals",
-    label: "Deals",
-    path: "/deals",
+    key: "bookings",
+    label: "Bookings",
+    path: "/bookings",
     icon: FaFileContract,
     iconColor: "#7AC943",
+  },
+
+  {
+    key: "payments",
+    label: "Payments",
+    path: "/payments",
+    icon: FaCreditCard,
+    iconColor: "#0A4DB8",
   },
 
   {
@@ -211,6 +159,160 @@ export const BROKER_MENU = [
     label: "Commission",
     path: "/commission",
     icon: FaMoneyBillWave,
+    iconColor: "#7AC943",
+  },
+
+  {
+    key: "notifications",
+    label: "Notifications",
+    path: "/notifications",
+    icon: FaBell,
+    iconColor: "#7AC943",
+  },
+
+  {
+    key: "reports",
+    label: "Reports",
+    path: "/reports",
+    icon: FaChartBar,
+    iconColor: "#0A4DB8",
+  },
+
+];
+
+
+export const ADMIN_A_MENU = [
+
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    path: "/dashboard",
+    icon: FaTachometerAlt,
+    iconColor: "#0A4DB8",
+  },
+
+  {
+    key: "users",
+    label: "User Management",
+    icon: FaUsers,
+    type: "dropdown",
+
+    children: [
+
+      {
+        key: "owners",
+        label: "Owners",
+        path: "/owners",
+        icon: FaUsers,
+      },
+
+      {
+        key: "brokers",
+        label: "Brokers",
+        path: "/brokers",
+        icon: FaUserTie,
+      },
+
+      {
+        key: "developers",
+        label: "Developers",
+        path: "/developers",
+        icon: FaBuilding,
+      },
+
+      {
+        key: "buyers",
+        label: "Buyers",
+        path: "/buyers",
+        icon: FaUserFriends,
+      }
+
+    ]
+
+  },
+
+  {
+    key: "property",
+    label: "Property",
+    path: "/properties",
+    icon: FaHome,
+    iconColor: "#7AC943",
+  },
+
+  {
+    key: "approval",
+    label: "Property Approval",
+    path: "/property-approval",
+    icon: FaClipboardList,
+    iconColor: "#0A4DB8",
+  },
+
+  {
+    key: "leads",
+    label: "Leads",
+    path: "/leads",
+    icon: FaHandshake,
+    iconColor: "#7AC943",
+  },
+
+  {
+    key: "reports",
+    label: "Reports",
+    path: "/reports",
+    icon: FaChartBar,
+    iconColor: "#0A4DB8",
+  },
+
+  {
+    key: "notifications",
+    label: "Notifications",
+    path: "/notifications",
+    icon: FaBell,
+    iconColor: "#7AC943",
+  }
+
+];
+
+
+export const ADMIN_B_MENU = [
+
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    path: "/dashboard",
+    icon: FaTachometerAlt,
+    iconColor: "#0A4DB8",
+  },
+
+  {
+    key: "blog",
+    label: "Blog",
+    path: "/blog",
+    icon: FaNewspaper,
+    iconColor: "#7AC943",
+  },
+
+  {
+    key: "contact",
+    label: "Contact Enquiry",
+    path: "/contact-enquiry",
+    icon: FaEnvelope,
+    iconColor: "#0A4DB8",
+  },
+
+  {
+    key: "faq",
+    label: "FAQ",
+    path: "/faq",
+    icon: FaQuestionCircle,
+    iconColor: "#7AC943",
+  },
+
+  {
+    key: "notifications",
+    label: "Notifications",
+    path: "/notifications",
+    icon: FaBell,
     iconColor: "#0A4DB8",
   },
 
@@ -220,105 +322,6 @@ export const BROKER_MENU = [
     path: "/reports",
     icon: FaChartBar,
     iconColor: "#7AC943",
-  },
-];
+  }
 
-/* =====================================================
-   AGENT MENU
-===================================================== */
-
-export const AGENT_MENU = [
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    path: "/dashboard",
-    icon: FaTachometerAlt,
-    iconColor: "#0A4DB8",
-  },
-
-  {
-    key: "assigned-properties",
-    label: "Assigned Properties",
-    path: "/assigned-properties",
-    icon: FaHome,
-    iconColor: "#7AC943",
-  },
-
-  {
-    key: "leads",
-    label: "Assigned Leads",
-    path: "/leads",
-    icon: FaHandshake,
-    iconColor: "#0A4DB8",
-  },
-
-  {
-    key: "site-visits",
-    label: "Site Visits",
-    path: "/site-visits",
-    icon: FaCalendarCheck,
-    iconColor: "#7AC943",
-  },
-
-  {
-    key: "deals",
-    label: "Deals",
-    path: "/deals",
-    icon: FaFileContract,
-    iconColor: "#0A4DB8",
-  },
-
-  {
-    key: "reports",
-    label: "Performance Reports",
-    path: "/reports",
-    icon: FaChartBar,
-    iconColor: "#7AC943",
-  },
-];
-
-/* =====================================================
-   PROPERTY OWNER MENU
-===================================================== */
-
-export const OWNER_MENU = [
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    path: "/dashboard",
-    icon: FaTachometerAlt,
-    iconColor: "#0A4DB8",
-  },
-
-  {
-    key: "properties",
-    label: "My Properties",
-    path: "/my-properties",
-    icon: FaHome,
-    iconColor: "#7AC943",
-  },
-
-  {
-    key: "property-inquiries",
-    label: "Property Inquiries",
-    path: "/property-inquiries",
-    icon: FaHandshake,
-    iconColor: "#0A4DB8",
-  },
-
-  {
-    key: "site-visits",
-    label: "Visit Requests",
-    path: "/visit-requests",
-    icon: FaCalendarCheck,
-    iconColor: "#7AC943",
-  },
-
-  {
-    key: "agreements",
-    label: "Documents",
-    path: "/documents",
-    icon: FaFileContract,
-    iconColor: "#0A4DB8",
-  },
 ];

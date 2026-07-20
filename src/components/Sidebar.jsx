@@ -2,9 +2,8 @@ import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import {
   SUPER_ADMIN_MENU,
-  BROKER_MENU,
-  AGENT_MENU,
-  OWNER_MENU,
+  ADMIN_A_MENU,
+  ADMIN_B_MENU,
 } from "./sidebarConfig";
 import logo from "../assets/logo.png";
 import "./Sidebar.css";
@@ -13,29 +12,27 @@ import { FaChevronDown } from "react-icons/fa";
 const Sidebar = ({ isOpen = false, onClose = () => { } }) => {
   const [openDropdown, setOpenDropdown] = useState(null);
 
-  // Get logged in user
+  // Get logged in user safely
   const user = JSON.parse(localStorage.getItem("user")) || {};
 
-  const role = user?.role || "";
+  // Extract the true role string from the API response structure
+  const roleName = user?.role_name || "";
 
   // Dynamic Sidebar Based On Role
   let SIDEBAR_ITEMS = [];
 
-  switch (role) {
-    case "SUPER_ADMIN":
+  // Match against the explicit database string representations
+  switch (roleName) {
+    case "Super Admin":
       SIDEBAR_ITEMS = SUPER_ADMIN_MENU;
       break;
 
-    case "BROKER":
-      SIDEBAR_ITEMS = BROKER_MENU;
+    case "Admin A":
+      SIDEBAR_ITEMS = ADMIN_A_MENU;
       break;
 
-    case "AGENT":
-      SIDEBAR_ITEMS = AGENT_MENU;
-      break;
-
-    case "OWNER":
-      SIDEBAR_ITEMS = OWNER_MENU;
+    case "Admin B":
+      SIDEBAR_ITEMS = ADMIN_B_MENU;
       break;
 
     default:
@@ -109,8 +106,8 @@ const Sidebar = ({ isOpen = false, onClose = () => { } }) => {
 
                     <FaChevronDown
                       className={`chevron ${openDropdown === item.key
-                          ? "open"
-                          : ""
+                        ? "open"
+                        : ""
                         }`}
                     />
                   </div>

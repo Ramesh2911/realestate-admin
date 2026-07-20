@@ -2,6 +2,8 @@ import { useState } from "react";
 import logo from "../../assets/logo.png";
 import "./Login.css";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { loginApi } from "../../services/auth.api";
 
 export default function Login() {
 
@@ -13,33 +15,6 @@ export default function Login() {
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
 
-
-  const USERS = [
-    {
-      mobile: "9999999991",
-      password: "123456",
-      role: "SUPER_ADMIN",
-      name: "Super Admin",
-    },
-    {
-      mobile: "9999999992",
-      password: "123456",
-      role: "BROKER",
-      name: "Broker User",
-    },
-    {
-      mobile: "9999999993",
-      password: "123456",
-      role: "AGENT",
-      name: "Agent User",
-    },
-    {
-      mobile: "9999999994",
-      password: "123456",
-      role: "OWNER",
-      name: "Property Owner",
-    },
-  ];
 
   const validate = () => {
     let valid = true;
@@ -63,33 +38,44 @@ export default function Login() {
 
     setLoading(true);
 
-    setTimeout(() => {
-      const user = USERS.find(
-        (item) =>
-          item.mobile === mobile &&
-          item.password === password
-      );
+    try {
+      const payload = {
+        mobile: mobile,
+        password,
+      };
 
-      if (!user) {
-        setLoading(false);
-        alert("Invalid Mobile Number or Password");
-        return;
+      const response = await loginApi(payload);
+
+      // API Response Data
+      const { success, message, data } = response.data;
+
+      if (success) {
+        // Store JWT Token under the same key used by auth/api services
+        localStorage.setItem("access_token", data.token);
+
+        // Store User Information
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        // Store Role (Optional)
+        localStorage.setItem("role", data.user.role_name);
+
+        toast.success(message || "Login Successfully.");
+
+        navigate("/dashboard");
+      } else {
+        toast.error(message || "Invalid Mobile Number or Password");
       }
+    } catch (error) {
+      console.error("Login Error:", error);
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: Date.now(),
-          name: user.name,
-          mobile: user.mobile,
-          role: user.role,
-        })
-      );
+      const message =
+        error?.response?.data?.message ||
+        "Something went wrong. Please try again.";
 
+      toast.error(message);
+    } finally {
       setLoading(false);
-
-      navigate("/dashboard");
-    }, 1000);
+    }
   };
 
   return (

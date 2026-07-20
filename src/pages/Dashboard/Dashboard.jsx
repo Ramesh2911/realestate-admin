@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 /* ─────────────────────────────────────────────
-   ROLE-BASED STATIC DATA
+    ROLE-BASED STATIC DATA
 ───────────────────────────────────────────── */
 const ROLE_DATA = {
   SUPER_ADMIN: {
@@ -108,10 +108,8 @@ const ROLE_DATA = {
   },
 };
 
-const ROLE_LABELS = { SUPER_ADMIN: 'Super Admin', BROKER: 'Broker', AGENT: 'Agent', OWNER: 'Owner' };
-
 /* ─────────────────────────────────────────────
-   COLOR SYSTEM
+    COLOR SYSTEM
 ───────────────────────────────────────────── */
 const C = {
   primaryBlue: '#0A4DB8',
@@ -123,7 +121,6 @@ const C = {
   textDark: '#1b2b4b',
   textLight: '#6c7a89',
   border: '#dce8d8',
-  // Semantic Elements
   success: '#16a34a',
   successBg: 'rgba(122,201,67,0.10)',
   successBorder: 'rgba(122,201,67,0.25)',
@@ -133,7 +130,6 @@ const C = {
   danger: '#dc2626',
   dangerBg: 'rgba(220,38,38,0.10)',
   dangerBorder: 'rgba(220,38,38,0.20)',
-  // Formatting Elements
   cardBg: '#ffffff',
   cardHover: '#f0f7ec',
   pageBg: '#F5FAF3',
@@ -143,7 +139,7 @@ const C = {
 };
 
 /* ─────────────────────────────────────────────
-   STATUS BADGE CONFIG
+    STATUS BADGE CONFIG
 ───────────────────────────────────────────── */
 const statusStyle = (status) => ({
   padding: '5px 12px',
@@ -162,7 +158,7 @@ const statusStyle = (status) => ({
     status === 'Closed' ? C.success :
       status === 'In Progress' ? C.warning : C.danger,
   border: `1px solid ${status === 'Closed' ? C.successBorder :
-      status === 'In Progress' ? C.warningBorder : C.dangerBorder
+    status === 'In Progress' ? C.warningBorder : C.dangerBorder
     }`,
 });
 
@@ -175,44 +171,52 @@ const statusDot = (status) => ({
 });
 
 /* ─────────────────────────────────────────────
-   DASHBOARD COMPONENT
+    DASHBOARD COMPONENT
 ───────────────────────────────────────────── */
 const Dashboard = () => {
-  // Fallback default state configuration
   const [activeRole, setActiveRole] = useState('SUPER_ADMIN');
+  const [displayRoleName, setDisplayRoleName] = useState('Super Admin');
   const [userName, setUserName] = useState('');
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [btnHover, setBtnHover] = useState(false);
 
   useEffect(() => {
-    // 1. Fetch user authentication payload block out of Local Storage
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem("user");
+
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        // 2. Safely parse string constraints into localized state models
-        if (parsedUser && parsedUser.role) {
-          setActiveRole(parsedUser.role);
+
+        setUserName(parsedUser.full_name || "");
+
+        // Dynamically save the raw API role name for the badge
+        if (parsedUser.role_name) {
+          setDisplayRoleName(parsedUser.role_name);
         }
-        if (parsedUser && parsedUser.name) {
-          setUserName(parsedUser.name);
-        }
+
+        // Exact match mapping for internal UI configuration selection
+        const roleMap = {
+          "Super Admin": "SUPER_ADMIN",
+          "Broker": "BROKER",
+          "Agent": "AGENT",
+          "Owner": "OWNER",
+        };
+
+        setActiveRole(roleMap[parsedUser.role_name] || "SUPER_ADMIN");
       } catch (error) {
-        console.error("Failed to parse localized session payload storage:", error);
+        console.error("Error reading token configurations: ", error);
       }
     }
 
-    // Window resize handler logic
     const onResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   const isMobile = windowWidth <= 768;
   const isTablet = windowWidth > 768 && windowWidth <= 1024;
 
-  // Safeguard dataset initialization fallback properties loop layout structural boundaries 
   const data = ROLE_DATA[activeRole] || ROLE_DATA.SUPER_ADMIN;
 
   const getGreeting = () => {
@@ -476,7 +480,7 @@ const Dashboard = () => {
         <div>
           <div style={S.roleTag}>
             <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: C.primaryGreen, display: 'inline-block' }} />
-            {ROLE_LABELS[activeRole] || activeRole}
+            {displayRoleName}
           </div>
           <h1 style={S.title}>
             {getGreeting()}{userName ? `, ${userName}` : `, ${data.greeting}`}
@@ -517,7 +521,6 @@ const Dashboard = () => {
 
       {/* ── CHART + TABLE ── */}
       <div style={S.sectionGrid}>
-
         {/* Revenue / Trend Chart */}
         <div style={S.sectionCard}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -528,7 +531,6 @@ const Dashboard = () => {
             <span style={S.chartViewToggle}>Monthly ▾</span>
           </div>
 
-          {/* Y-axis labels */}
           <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '200px', paddingBottom: '20px', paddingRight: '4px' }}>
               {['100', '75', '50', '25', '0'].map(l => (
@@ -547,7 +549,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Chart legend */}
           <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: C.textLight }}>
               <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: `linear-gradient(135deg, ${C.primaryBlue}, ${C.secondaryBlue})`, display: 'inline-block' }} />
@@ -613,7 +614,6 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-      
     </div>
   );
 };
