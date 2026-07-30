@@ -15,7 +15,7 @@ import MyProfile from "./pages/Profile/MyProfile";
 import AllProperties from "./pages/Properties/AllProperties";
 import PropertyTypes from "./pages/Properties/PropertyTypes";
 import Brokers from "./pages/Broker/Brokers";
-import Agents from "./pages/Agent/Agents";
+import Developer from "./pages/Developer/Developer";
 import Owners from "./pages/Owner/Owners";
 import Leads from "./pages/Lead/Leads";
 import SiteVisits from "./pages/SiteVisit/SiteVisits";
@@ -25,6 +25,7 @@ import Reports from "./pages/Report/Reports";
 import Roles from "./pages/Role/Roles";
 import Settings from "./pages/Setting/Settings";
 import AddProperty from "./pages/Properties/AddProperty";
+import Buyers from "./pages/Buyer/Buyers";
 
 
 
@@ -58,8 +59,9 @@ function App() {
           <Route path="/properties" element={<AllProperties />} />
           <Route path="/property-types" element={<PropertyTypes />} />
           <Route path="/brokers" element={<Brokers />} />
-          <Route path="/agents" element={<Agents />} />
+          <Route path="/developers" element={<Developer />} />
           <Route path="/owners" element={<Owners />} />
+          <Route path="/buyers" element={<Buyers />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/site-visits" element={<SiteVisits />} />
           <Route path="/deals" element={<Deals />} />

@@ -1,11 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import {
-    FaBuilding, FaPlus, FaSearch, FaEdit, FaTrash,
-    FaMapMarkerAlt, FaTag, FaUserTie, FaEye
+    FaBuilding, FaSearch, FaTrash,
+    FaMapMarkerAlt, FaTag, FaUserTie, FaEye,
+    FaTimes, FaCheck, FaSpinner
 } from 'react-icons/fa';
 
-// Premium Color System Accents
+import { getPropertyApi, approvePropertyApi, rejectPropertyApi } from '../../services/auth.api';
+
 const C = {
     primaryBlue: '#0A4DB8',
     primaryGreen: '#7AC943',
@@ -19,123 +24,371 @@ const C = {
     danger: '#dc2626'
 };
 
-const STATIC_PROPERTIES = [
-    { id: 'PROP-101', title: 'Skyline Residency', type: 'Apartment', location: 'Whitefield, Bangalore', price: '₹85,00.000', status: 'Available', broker: 'Ananya Sharma' },
-    { id: 'PROP-102', title: 'Greenwood Meadows', type: 'Villa', location: 'Sarjapur Road, Bangalore', price: '₹2,40,00,000', status: 'Pending', broker: 'Rohan Das' },
-    { id: 'PROP-103', title: 'Oasis Tech Park', type: 'Commercial', location: 'Sector V, Kolkata', price: '₹5,10,00,000', status: 'Available', broker: 'Amit Verma' },
-    { id: 'PROP-104', title: 'Palm Heights', type: 'Apartment', location: 'New Town, Kolkata', price: '₹92,50,000', status: 'Sold', broker: 'Ananya Sharma' },
-    { id: 'PROP-105', title: 'Silver Oak Acres', type: 'Plot', location: 'HSR Layout, Bangalore', price: '₹1,15,00,000', status: 'Available', broker: 'Sanjay Reddy' },
-];
-
 const AllProperties = () => {
-    const [properties, setProperties] = useState(STATIC_PROPERTIES);
+    const navigate = useNavigate();
+    const [properties, setProperties] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [filterText, setFilterText] = useState('');
-    const [modalOpen, setModalOpen] = useState(false);
-    const [editItem, setEditItem] = useState(null);
 
-    // Form Field State Models
-    const [formData, setFormData] = useState({ title: '', type: 'Apartment', location: '', price: '', status: 'Available', broker: '' });
+    useEffect(() => {
+        fetchPropertiesData();
+    }, []);
 
-    // Custom Table Data Customization Engine
+    // 1. Fetch properties from backend API
+    const fetchPropertiesData = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await getPropertyApi();
+            // Handle response payload formatted as: { success: true, message: "...", data: [...] }
+            const data = response?.data?.data || response?.data || response || [];
+            setProperties(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error("Failed to load property inventory:", err);
+            const msg = err?.message || "Failed to load properties data";
+            setError(msg);
+            toast.error(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 2. Execute Approve/Reject API call and re-fetch real-time DB state
+    const executeStatusUpdate = async (id, type, comment) => {
+        const toastId = toast.loading(`${type === 'approve' ? 'Approving' : 'Rejecting'} property status...`);
+        try {
+            if (type === 'approve') {
+                await approvePropertyApi(id, { comments: comment, comment: comment });
+            } else {
+                await rejectPropertyApi(id, { comments: comment, comment: comment });
+            }
+
+            // Trigger getPropertyApi to sync with updated MySQL verification state
+            await fetchPropertiesData();
+
+            toast.update(toastId, {
+                render: `Property verification status updated successfully!`,
+                type: "success",
+                isLoading: false,
+                autoClose: 3000
+            });
+        } catch (err) {
+            console.error(`Failed to ${type} property:`, err);
+            toast.update(toastId, {
+                render: err?.response?.data?.message || `Failed to ${type} property.`,
+                type: "error",
+                isLoading: false,
+                autoClose: 4000
+            });
+        }
+    };
+
+    // Prompt Toast for Approval
+    const handleApprove = (id) => {
+        let commentText = "Verified and Approved";
+
+        toast(
+            ({ closeToast }) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <strong style={{ fontSize: '13px', color: C.textDark }}>Approve Property #{id}</strong>
+                    <input
+                        type="text"
+                        defaultValue={commentText}
+                        onChange={(e) => { commentText = e.target.value; }}
+                        placeholder="Approval comment..."
+                        style={{ padding: '6px', borderRadius: '4px', border: `1px solid ${C.border}`, fontSize: '12px' }}
+                    />
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                        <button
+                            onClick={closeToast}
+                            style={{ padding: '4px 8px', background: C.lightBg, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={() => {
+                                closeToast();
+                                executeStatusUpdate(id, 'approve', commentText);
+                            }}
+                            style={{ padding: '4px 10px', background: C.success, color: C.white, border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                        >
+                            Approve
+                        </button>
+                    </div>
+                </div>
+            ),
+            { autoClose: false, closeOnClick: false }
+        );
+    };
+
+    // Prompt Toast for Rejection
+    const handleReject = (id) => {
+        let commentText = "Verification failed";
+
+        toast(
+            ({ closeToast }) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <strong style={{ fontSize: '13px', color: C.danger }}>Reject Property #{id}</strong>
+                    <input
+                        type="text"
+                        defaultValue={commentText}
+                        onChange={(e) => { commentText = e.target.value; }}
+                        placeholder="Rejection reason..."
+                        style={{ padding: '6px', borderRadius: '4px', border: `1px solid ${C.border}`, fontSize: '12px' }}
+                    />
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                        <button
+                            onClick={closeToast}
+                            style={{ padding: '4px 8px', background: C.lightBg, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={() => {
+                                closeToast();
+                                executeStatusUpdate(id, 'reject', commentText);
+                            }}
+                            style={{ padding: '4px 10px', background: C.danger, color: C.white, border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                        >
+                            Reject
+                        </button>
+                    </div>
+                </div>
+            ),
+            { autoClose: false, closeOnClick: false }
+        );
+    };
+
+    // Prompt Toast for Deletion
+    const handleDelete = (id) => {
+        toast(
+            ({ closeToast }) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '13px', color: C.textDark }}>Purge property record <strong>#{id}</strong>?</span>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                        <button onClick={closeToast} style={{ padding: '4px 8px', background: C.lightBg, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Cancel</button>
+                        <button
+                            onClick={() => {
+                                closeToast();
+                                setProperties(prev => prev.filter(p => p.id !== id));
+                                toast.success("Property record removed.");
+                            }}
+                            style={{ padding: '4px 10px', background: C.danger, color: C.white, border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                        >
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            ),
+            { autoClose: false, closeOnClick: false }
+        );
+    };
+
     const customStyles = {
         header: { style: { minHeight: '56px' } },
         headRow: { style: { backgroundColor: C.lightBg, borderTopStyle: 'solid', borderTopWidth: '1px', borderTopColor: C.border, borderBottomWidth: '2px', borderBottomColor: C.border } },
         headCells: { style: { color: C.textDark, fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' } },
-        rows: { style: { minHeight: '64px', '&:not(:last-child)': { borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: C.border } } },
+        rows: { style: { minHeight: '72px', '&:not(:last-child)': { borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: C.border } } },
         cells: { style: { fontSize: '14px', color: C.textDark } },
     };
 
-    const handleOpenModal = (item = null) => {
-        if (item) {
-            setEditItem(item);
-            setFormData({ ...item });
-        } else {
-            setEditItem(null);
-            setFormData({ title: '', type: 'Apartment', location: '', price: '', status: 'Available', broker: '' });
-        }
-        setModalOpen(true);
-    };
-
-    const handleSave = (e) => {
-        e.preventDefault();
-        if (editItem) {
-            setProperties(properties.map(p => p.id === editItem.id ? { ...formData } : p));
-        } else {
-            const newId = `PROP-${Math.floor(100 + Math.random() * 900)}`;
-            setProperties([...properties, { id: newId, ...formData }]);
-        }
-        setModalOpen(false);
-    };
-
-    const handleDelete = (id) => {
-        if (window.confirm("Are you sure you want to remove this listing?")) {
-            setProperties(properties.filter(p => p.id !== id));
-        }
-    };
-
     const filteredItems = useMemo(() => {
-        return properties.filter(item =>
-            item.title.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.location.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.id.toLowerCase().includes(filterText.toLowerCase())
-        );
+        return properties.filter(item => {
+            const title = item.property_title || item.title || '';
+            const city = item.city || '';
+            const address = item.address || '';
+            const idStr = String(item.id || '');
+            const query = filterText.toLowerCase();
+
+            return title.toLowerCase().includes(query) ||
+                city.toLowerCase().includes(query) ||
+                address.toLowerCase().includes(query) ||
+                idStr.toLowerCase().includes(query);
+        });
     }, [properties, filterText]);
 
+    const renderAdminBadge = (roleLabel, status) => {
+        const currentStatus = status || 'Pending';
+        const isApproved = currentStatus === 'Approved';
+        const isPending = currentStatus === 'Pending';
+
+        const color = isApproved ? C.success : isPending ? C.warning : C.danger;
+        const bgColor = isApproved ? 'rgba(22,163,74,0.1)' : isPending ? 'rgba(245,158,11,0.1)' : 'rgba(220,38,38,0.1)';
+
+        return (
+            <span style={{
+                fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px',
+                backgroundColor: bgColor, color: color, whiteSpace: 'nowrap', display: 'inline-block'
+            }}>
+                {roleLabel}: <strong style={{ fontWeight: '800' }}>{currentStatus}</strong>
+            </span>
+        );
+    };
+
     const columns = [
-        { name: 'Property ID', selector: row => row.id, sortable: true, cell: row => <span style={{ fontWeight: '700', color: C.primaryBlue }}>{row.id}</span>, width: '120px' },
         {
-            name: 'Listing Details', selector: row => row.title, sortable: true, cell: row => (
-                <div style={{ padding: '6px 0' }}>
-                    <div style={{ fontWeight: '700', color: C.textDark, marginBottom: '2px' }}>{row.title}</div>
-                    <div style={{ fontSize: '12px', color: C.textLight, display: 'flex', alignItems: 'center', gap: '4px' }}><FaMapMarkerAlt size={10} /> {row.location}</div>
-                </div>
-            ), width: '260px'
-        },
-        { name: 'Category', selector: row => row.type, sortable: true, width: '130px' },
-        { name: 'Valuation', selector: row => row.price, sortable: true, cell: row => <span style={{ fontWeight: '700' }}>{row.price}</span>, width: '140px' },
-        { name: 'Custodian Broker', selector: row => row.broker, sortable: true, width: '160px' },
-        {
-            name: 'Status', selector: row => row.status, sortable: true, cell: row => (
-                <span style={{
-                    padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
-                    backgroundColor: row.status === 'Available' ? 'rgba(22,163,74,0.1)' : row.status === 'Pending' ? 'rgba(245,158,11,0.1)' : 'rgba(220,38,38,0.1)',
-                    color: row.status === 'Available' ? C.success : row.status === 'Pending' ? C.warning : C.danger,
-                    border: `1px solid ${row.status === 'Available' ? 'rgba(22,163,74,0.2)' : row.status === 'Pending' ? 'rgba(245,158,11,0.2)' : 'rgba(220,38,38,0.2)'}`
-                }}>{row.status}</span>
-            ), width: '130px'
+            name: 'Property ID', selector: row => row.id, sortable: true,
+            cell: row => <span style={{ fontWeight: '700', color: C.primaryBlue }}>#PROP-{row.id}</span>, width: '120px'
         },
         {
-            name: 'Actions', cell: row => (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => handleOpenModal(row)} style={{ padding: '6px', background: 'none', border: 'none', color: C.primaryBlue, cursor: 'pointer' }} title="Modify Entry"><FaEdit size={14} /></button>
-                    <button onClick={() => handleDelete(row.id)} style={{ padding: '6px', background: 'none', border: 'none', color: C.danger, cursor: 'pointer' }} title="Purge Record"><FaTrash size={14} /></button>
-                </div>
-            ), ignoreRowClick: true, allowOverflow: true, button: true
+            name: 'Listing Details', selector: row => row.property_title || row.title, sortable: true,
+            cell: row => {
+                const title = row.property_title || row.title || 'Untitled Property';
+                const location = row.city ? `${row.city}, ${row.state || ''}` : row.address || 'Location N/A';
+                return (
+                    <div style={{ padding: '6px 0' }}>
+                        <div style={{ fontWeight: '700', color: C.textDark, marginBottom: '2px' }}>{title}</div>
+                        <div style={{ fontSize: '12px', color: C.textLight, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <FaMapMarkerAlt size={10} /> {location}
+                        </div>
+                    </div>
+                );
+            }, width: '220px'
+        },
+        {
+            name: 'Valuation', selector: row => row.price, sortable: true,
+            cell: row => {
+                const amount = parseFloat(row.price || 0);
+                return <span style={{ fontWeight: '700' }}>₹{amount.toLocaleString('en-IN')}</span>;
+            }, width: '130px'
+        },
+        {
+            name: 'Global Status', selector: row => row.property_status, sortable: true,
+            cell: row => {
+                const status = row.property_status || 'Pending';
+                const isApproved = status === 'Approved' || status === 'Available';
+                const isPending = status === 'Pending';
+
+                return (
+                    <span style={{
+                        padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
+                        backgroundColor: isApproved ? 'rgba(22,163,74,0.1)' : isPending ? 'rgba(245,158,11,0.1)' : 'rgba(220,38,38,0.2)',
+                        color: isApproved ? C.success : isPending ? C.warning : C.danger,
+                        border: `1px solid ${isApproved ? 'rgba(22,163,74,0.2)' : isPending ? 'rgba(245,158,11,0.2)' : 'rgba(220,38,38,0.2)'}`,
+                        whiteSpace: 'nowrap'
+                    }}>{status}</span>
+                );
+            }, width: '130px'
+        },
+        {
+            name: 'Verifications Hierarchy',
+            cell: row => {
+                // Directly reads flattened fields from SQL LEFT JOIN payload
+                const adminA = row.admin_a_status || 'Pending';
+                const adminB = row.admin_b_status || 'Pending';
+                const superAdmin = row.super_admin_status || 'Pending';
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '6px 0', width: '100%' }}>
+                        <div>{renderAdminBadge('Super Admin', superAdmin)}</div>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap' }}>
+                            {renderAdminBadge('Admin A', adminA)}
+                            {renderAdminBadge('Admin B', adminB)}
+                        </div>
+                    </div>
+                );
+            }, width: '270px'
+        },
+        {
+            name: 'Actions',
+            cell: row => {
+                // Retrieve current user info from localStorage
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                const roleId = Number(user.role_id);
+
+                const adminA = row.admin_a_status || 'Pending';
+                const adminB = row.admin_b_status || 'Pending';
+                const superAdmin = row.super_admin_status || 'Pending';
+
+                // Check if the currently logged-in user has already submitted their review
+                let isAlreadyReviewed = false;
+
+                if (roleId === 2) {
+                    // Admin A already reviewed
+                    isAlreadyReviewed = adminA !== 'Pending';
+                } else if (roleId === 3) {
+                    // Admin B already reviewed
+                    isAlreadyReviewed = adminB !== 'Pending';
+                } else if (roleId === 1) {
+                    // Super Admin only acts on conflicts or if super admin decision isn't finalized
+                    const isConsensusReached = (adminA === 'Approved' && adminB === 'Approved') ||
+                        (adminA === 'Rejected' && adminB === 'Rejected');
+                    isAlreadyReviewed = isConsensusReached || superAdmin !== 'Pending';
+                }
+
+                return (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {/* View Details Button - Always visible */}
+                        <button
+                            onClick={() => navigate(`/properties/details/${row.id}`)}
+                            style={{ padding: '6px', background: 'none', border: 'none', color: C.primaryBlue, cursor: 'pointer' }}
+                            title="View Details"
+                        >
+                            <FaEye size={15} />
+                        </button>
+
+                        {/* Show Approve/Reject buttons ONLY IF the logged-in user hasn't reviewed yet */}
+                        {!isAlreadyReviewed ? (
+                            <>
+                                <button
+                                    onClick={() => handleApprove(row.id)}
+                                    style={{ padding: '6px', background: 'none', border: 'none', color: C.success, cursor: 'pointer' }}
+                                    title="Approve Entry"
+                                >
+                                    <FaCheck size={15} />
+                                </button>
+                                <button
+                                    onClick={() => handleReject(row.id)}
+                                    style={{ padding: '6px', background: 'none', border: 'none', color: '#eab308', cursor: 'pointer' }}
+                                    title="Reject Entry"
+                                >
+                                    <FaTimes size={15} />
+                                </button>
+                            </>
+                        ) : (
+                            <span style={{ fontSize: '11px', color: C.textLight, fontStyle: 'italic', padding: '0 4px' }}>
+                                Reviewed
+                            </span>
+                        )}
+
+                        {/* Delete Button (Optional: Restrict to Super Admin or leave for all) */}
+                        <button
+                            onClick={() => handleDelete(row.id)}
+                            style={{ padding: '6px', background: 'none', border: 'none', color: C.danger, cursor: 'pointer' }}
+                            title="Purge Record"
+                        >
+                            <FaTrash size={15} />
+                        </button>
+                    </div>
+                );
+            },
+            ignoreRowClick: true, allowOverflow: true, button: true, width: '160px'
         }
     ];
 
-    // Dynamic analytic metrics
     const stats = useMemo(() => {
+        const activeCount = properties.filter(p => p.property_status === 'Approved' || p.property_status === 'Available').length;
+        const totalValuation = properties.reduce((acc, curr) => acc + parseFloat(curr.price || 0), 0);
+
         return {
             total: properties.length,
-            available: properties.filter(p => p.status === 'Available').length,
-            value: '₹9.42 Cr'
+            available: activeCount,
+            value: `₹${(totalValuation / 10000000).toFixed(2)} Cr`
         };
     }, [properties]);
 
     return (
         <div style={{ background: C.lightBg, minHeight: '100vh', padding: '32px', fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
 
-            {/* Structural Metric Cards Context Banner */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
                     <h1 style={{ fontSize: '28px', fontWeight: '800', color: C.textDark, margin: 0 }}>All Live Properties</h1>
-                    <p style={{ color: C.textLight, margin: '4px 0 0', fontSize: '14px' }}>Master index of asset inventory records and allocations.</p>
+                    <p style={{ color: C.textLight, margin: '4px 0 0', fontSize: '14px' }}>Master index of asset inventory records and multi-tier verification statuses.</p>
                 </div>
-                <button onClick={() => handleOpenModal()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: `linear-gradient(135deg, ${C.primaryBlue}, #003D99)`, color: C.white, border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 14px rgba(10,77,184,0.25)' }}><FaPlus /> Add New Listing</button>
             </div>
 
-            {/* Analytics Summary Panels */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
                 {[
                     { label: 'Total Tracked Assets', val: stats.total, icon: <FaBuilding color={C.primaryBlue} /> },
@@ -152,62 +405,26 @@ const AllProperties = () => {
                 ))}
             </div>
 
-            {/* Core Component Workspace Box */}
             <div style={{ background: C.white, borderRadius: '20px', border: `1px solid ${C.border}`, padding: '24px', boxShadow: '0 4px 20px rgba(10,77,184,0.04)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', background: C.lightBg, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '10px 16px', marginBottom: '20px', maxWidth: '400px' }}>
                     <FaSearch color={C.textLight} style={{ marginRight: '10px' }} />
                     <input type="text" placeholder="Search title, context or structural index..." value={filterText} onChange={e => setFilterText(e.target.value)} style={{ background: 'none', border: 'none', width: '100%', outline: 'none', fontSize: '14px', color: C.textDark }} />
                 </div>
 
-                <DataTable columns={columns} data={filteredItems} pagination customStyles={customStyles} responsive highlightOnHover defaultSortFieldId={1} />
-            </div>
-
-            {/* Dynamic Overlay Layout Modal */}
-            {modalOpen && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(27,43,75,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div style={{ background: C.white, width: '100%', maxWidth: '550px', borderRadius: '20px', padding: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: `1px solid ${C.border}` }}>
-                        <h3 style={{ margin: '0 0 24px', fontSize: '20px', fontWeight: '800', color: C.textDark }}>{editItem ? 'Update Portfolio Listing' : 'Provision Asset Record'}</h3>
-                        <form onSubmit={handleSave} style={{ display: 'grid', gap: '16px' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: C.textLight, textTransform: 'uppercase' }}>Property Title</label>
-                                <input type="text" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} style={{ width: '100%', padding: '12px', border: `1px solid ${C.border}`, borderRadius: '8px', boxSizing: 'border-box' }} />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: C.textLight, textTransform: 'uppercase' }}>Category Type</label>
-                                    <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} style={{ width: '100%', padding: '12px', border: `1px solid ${C.border}`, borderRadius: '8px', background: C.white }}>
-                                        {['Apartment', 'Villa', 'Commercial', 'Plot', 'Penthouse'].map(t => <option key={t} value={t}>{t}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: C.textLight, textTransform: 'uppercase' }}>Valuation Price</label>
-                                    <input type="text" required value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} placeholder="e.g. ₹95,00,000" style={{ width: '100%', padding: '12px', border: `1px solid ${C.border}`, borderRadius: '8px', boxSizing: 'border-box' }} />
-                                </div>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: C.textLight, textTransform: 'uppercase' }}>Physical Address Location</label>
-                                <input type="text" required value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} style={{ width: '100%', padding: '12px', border: `1px solid ${C.border}`, borderRadius: '8px', boxSizing: 'border-box' }} />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: C.textLight, textTransform: 'uppercase' }}>Allocated Broker</label>
-                                    <input type="text" required value={formData.broker} onChange={e => setFormData({ ...formData, broker: e.target.value })} style={{ width: '100%', padding: '12px', border: `1px solid ${C.border}`, borderRadius: '8px', boxSizing: 'border-box' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: C.textLight, textTransform: 'uppercase' }}>Workflow Status</label>
-                                    <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} style={{ width: '100%', padding: '12px', border: `1px solid ${C.border}`, borderRadius: '8px', background: C.white }}>
-                                        {['Available', 'Pending', 'Sold'].map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '14px' }}>
-                                <button type="button" onClick={() => setModalOpen(false)} style={{ padding: '12px 20px', border: `1px solid ${C.border}`, borderRadius: '8px', background: 'none', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
-                                <button type="submit" style={{ padding: '12px 24px', border: 'none', borderRadius: '8px', background: C.primaryBlue, color: C.white, cursor: 'pointer', fontWeight: '700' }}>Save Records</button>
-                            </div>
-                        </form>
+                {loading ? (
+                    <div style={{ padding: '60px', textAlign: 'center', color: C.textLight }}>
+                        <FaSpinner className="animate-spin" size={28} style={{ marginBottom: '12px', color: C.primaryBlue }} />
+                        <p style={{ margin: 0, fontWeight: '600' }}>Loading properties directory...</p>
                     </div>
-                </div>
-            )}
+                ) : error ? (
+                    <div style={{ padding: '32px', textAlign: 'center', color: C.danger }}>
+                        <p style={{ margin: '0 0 12px', fontWeight: '700' }}>{error}</p>
+                        <button onClick={fetchPropertiesData} style={{ padding: '8px 16px', background: C.primaryBlue, color: C.white, border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>Retry</button>
+                    </div>
+                ) : (
+                    <DataTable columns={columns} data={filteredItems} pagination customStyles={customStyles} responsive highlightOnHover defaultSortFieldId={1} />
+                )}
+            </div>
         </div>
     );
 };
