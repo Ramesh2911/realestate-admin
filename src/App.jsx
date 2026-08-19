@@ -26,6 +26,8 @@ import Roles from "./pages/Role/Roles";
 import Settings from "./pages/Setting/Settings";
 import AddProperty from "./pages/Properties/AddProperty";
 import Buyers from "./pages/Buyer/Buyers";
+import ActivityLogs from "./pages/ActivityLogs/ActivityLogs";
+import SEOManagement from "./pages/SEO/SEOManagement";
 
 
 
@@ -69,6 +71,8 @@ function App() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/roles" element={<Roles />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/activity-logs" element={<ActivityLogs />} />
+          <Route path="/seo" element={<SEOManagement />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

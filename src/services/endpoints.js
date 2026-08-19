@@ -1,6 +1,7 @@
 export const AUTH = {
   LOGIN: "/auth/login",
   LOGOUT: "/auth/logout",
+  PROFILE: "/auth/profile",
 };
 
 export const USER = {
@@ -8,10 +9,37 @@ export const USER = {
   GET_BROKER: "/users/brokers",
   GET_DEVELOPER: "/users/developers",
   GET_BUYER: "/users/buyers",
-}
+};
 
 export const PROPERTY = {
   GET_ALL: "/properties/all",
- APPROVE_PROPERTY: (id) => `/properties/admin/approve/${id}`,
-  REJECT_PROPERTY: (id) => `/properties/admin/reject/${id}`,
-}
+  APPROVE: (id) => `/properties/admin/approve/${id}`,
+  REJECT: (id) => `/properties/admin/reject/${id}`,
+  STATUS: (id) => `/properties/admin/status/${id}`,
+  FEATURED: (id) => `/properties/admin/featured/${id}`,
+};
+
+export const DASHBOARD = {
+  STATS: "/dashboard/stats",
+  ADMIN_STATS: "/dashboard/admin/stats",
+  LOGS: "/dashboard/logs",
+  PROPERTY_STATS: "/dashboard/property-stats",
+};
+
+export const LEADS = {
+  REQUIREMENTS: "/leads/requirements",
+  REQUIREMENT_BY_ID: (id) => `/leads/requirements/${id}`,
+  INTERESTS: "/leads/interests",
+};
+
+export const NOTIFICATIONS = {
+  LIST: "/notifications",
+  UNREAD: "/notifications/unread-count",
+  MARK_READ: (id) => `/notifications/read/${id}`,
+  MARK_ALL: "/notifications/read-all",
+};
+
+export const SEO = {
+  PAGES: "/seo/pages",
+  PAGE_BY_ID: (id) => `/seo/pages/${id}`,
+};

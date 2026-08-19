@@ -3,42 +3,39 @@ import {
   AUTH,
   PROPERTY,
   USER,
-
+  DASHBOARD,
+  LEADS,
+  NOTIFICATIONS,
+  SEO,
 } from "./endpoints";
 
-export const loginApi = (payload) => {
-  return API.post(AUTH.LOGIN, payload);
-};
+export const loginApi = (payload) => API.post(AUTH.LOGIN, payload);
+export const logoutApi = () => API.post(AUTH.LOGOUT);
+export const getProfileApi = () => API.get(AUTH.PROFILE);
 
-export const logoutApi = () => {
-  return API.post(AUTH.LOGOUT);
-};
+export const getOwnerApi = () => API.get(USER.GET_OWNER);
+export const getBrokerApi = () => API.get(USER.GET_BROKER);
+export const getDeveloperApi = () => API.get(USER.GET_DEVELOPER);
+export const getBuyerApi = () => API.get(USER.GET_BUYER);
 
-export const getOwnerApi = () => {
-  return API.get(USER.GET_OWNER);
-}
+export const getPropertyApi = () => API.get(PROPERTY.GET_ALL);
+export const approvePropertyApi = (id, payload = {}) => API.patch(PROPERTY.APPROVE(id), payload);
+export const rejectPropertyApi = (id, payload = {}) => API.patch(PROPERTY.REJECT(id), payload);
 
-export const getBrokerApi = () => {
-  return API.get(USER.GET_BROKER);
-}
+export const getDashboardStatsApi = () => API.get(DASHBOARD.STATS);
+export const getAdminStatsApi = () => API.get(DASHBOARD.ADMIN_STATS);
+export const getLogsApi = (params) => API.get(DASHBOARD.LOGS, { params });
+export const getPropertyStatsApi = () => API.get(DASHBOARD.PROPERTY_STATS);
 
-export const getDeveloperApi = () => {
-  return API.get(USER.GET_DEVELOPER);
-}
+export const getLeadsApi = () => API.get(LEADS.REQUIREMENTS);
+export const getAllInterestsApi = () => API.get(LEADS.INTERESTS);
 
-export const getBuyerApi = () => {
-  return API.get(USER.GET_BUYER);
-}
+export const getNotificationsApi = (params) => API.get(NOTIFICATIONS.LIST, { params });
+export const getUnreadCountApi = () => API.get(NOTIFICATIONS.UNREAD);
+export const markNotificationReadApi = (id) => API.patch(NOTIFICATIONS.MARK_READ(id));
+export const markAllReadApi = () => API.patch(NOTIFICATIONS.MARK_ALL);
 
-export const getPropertyApi = () => {
-  return API.get(PROPERTY.GET_ALL);
-}
-
-export const approvePropertyApi = (id, payload = {}) => {
-  return API.patch(PROPERTY.APPROVE_PROPERTY(id), payload);
-};
-
-export const rejectPropertyApi = (id, payload = {}) => {
-  return API.patch(PROPERTY.REJECT_PROPERTY(id), payload);
-};
-
+export const getSeoPagesApi = () => API.get(SEO.PAGES);
+export const createSeoPageApi = (data) => API.post(SEO.PAGES, data);
+export const updateSeoPageApi = (id, data) => API.put(SEO.PAGE_BY_ID(id), data);
+export const deleteSeoPageApi = (id) => API.delete(SEO.PAGE_BY_ID(id));

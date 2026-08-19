@@ -1,112 +1,9 @@
 import React, { useState, useEffect } from 'react';
-
-/* ─────────────────────────────────────────────
-    ROLE-BASED STATIC DATA
-───────────────────────────────────────────── */
-const ROLE_DATA = {
-  SUPER_ADMIN: {
-    greeting: 'Super Admin',
-    subtitle: 'Full platform overview — all regions, all teams.',
-    stats: [
-      { key: 'properties', label: 'Total Properties', value: '1,248', trend: '+12.4%', subText: 'vs last month', icon: '🏢', positive: true },
-      { key: 'brokers', label: 'Active Brokers', value: '86', trend: '+3', subText: 'this month', icon: '🤝', positive: true },
-      { key: 'agents', label: 'Active Agents', value: '342', trend: '+18', subText: 'this month', icon: '👔', positive: true },
-      { key: 'owners', label: 'Property Owners', value: '5,610', trend: '+94', subText: 'registered', icon: '🏠', positive: true },
-      { key: 'leads', label: 'Total Leads', value: '3,920', trend: '+22.0%', subText: 'vs last week', icon: '🎯', positive: true },
-      { key: 'visits', label: 'Site Visits', value: '728', trend: '+8.5%', subText: 'this month', icon: '📍', positive: true },
-      { key: 'deals', label: 'Closed Deals', value: '194', trend: '+15.2%', subText: 'vs last month', icon: '✅', positive: true },
-      { key: 'commission', label: 'Total Commission', value: '₹48.6L', trend: '+19.8%', subText: 'vs last month', icon: '💰', positive: true },
-    ],
-    orders: [
-      { id: '#D-1084', name: 'Ramesh Iyer', type: 'Apartment', value: '₹82L', status: 'Closed' },
-      { id: '#D-1083', name: 'Sunita Kapoor', type: 'Villa', value: '₹2.1Cr', status: 'In Progress' },
-      { id: '#D-1082', name: 'Arjun Nair', type: 'Commercial', value: '₹1.4Cr', status: 'Closed' },
-      { id: '#D-1081', name: 'Meena Pillai', type: 'Plot', value: '₹45L', status: 'Cancelled' },
-      { id: '#D-1080', name: 'Vikram Malhotra', type: 'Apartment', value: '₹95L', status: 'Closed' },
-    ],
-    chartLabel: 'Commission Revenue (₹L)',
-    chartData: [
-      { month: 'Jan', height: 42 }, { month: 'Feb', height: 58 },
-      { month: 'Mar', height: 72 }, { month: 'Apr', height: 61 },
-      { month: 'May', height: 95 }, { month: 'Jun', height: 83 },
-    ],
-    tableHeaders: ['Deal ID', 'Client', 'Property Type', 'Value', 'Status'],
-  },
-
-  BROKER: {
-    greeting: 'Broker',
-    subtitle: 'Your team performance & pipeline at a glance.',
-    stats: [
-      { key: 'myprops', label: 'My Properties', value: '148', trend: '+6', subText: 'listed', icon: '🏢', positive: true },
-      { key: 'myagents', label: 'My Agents', value: '24', trend: '+2', subText: 'active', icon: '👔', positive: true },
-      { key: 'newleads', label: 'New Leads', value: '312', trend: '+34', subText: 'this week', icon: '🎯', positive: true },
-      { key: 'visits', label: 'Site Visits', value: '89', trend: '+11', subText: 'this month', icon: '📍', positive: true },
-      { key: 'deals', label: 'Active Deals', value: '27', trend: '+4', subText: 'ongoing', icon: '🔄', positive: true },
-      { key: 'commission', label: 'Commission Earned', value: '₹6.2L', trend: '+18.4%', subText: 'this month', icon: '💰', positive: true },
-    ],
-    orders: [
-      { id: '#L-2041', name: 'Pooja Sharma', type: '3BHK Flat', value: '₹74L', status: 'In Progress' },
-      { id: '#L-2040', name: 'Nikhil Gupta', type: 'Villa', value: '₹1.8Cr', status: 'Closed' },
-      { id: '#L-2039', name: 'Divya Menon', type: 'Plot', value: '₹38L', status: 'In Progress' },
-      { id: '#L-2038', name: 'Sanjay Reddy', type: 'Office', value: '₹92L', status: 'Cancelled' },
-    ],
-    chartLabel: 'Lead Conversion (Monthly)',
-    chartData: [
-      { month: 'Jan', height: 38 }, { month: 'Feb', height: 52 },
-      { month: 'Mar', height: 65 }, { month: 'Apr', height: 55 },
-      { month: 'May', height: 90 }, { month: 'Jun', height: 78 },
-    ],
-    tableHeaders: ['Lead ID', 'Client', 'Property', 'Value', 'Status'],
-  },
-
-  AGENT: {
-    greeting: 'Agent',
-    subtitle: 'Your assigned leads, visits & closures.',
-    stats: [
-      { key: 'assignedprops', label: 'Assigned Properties', value: '32', trend: '+4', subText: 'active', icon: '🏠', positive: true },
-      { key: 'assignedleads', label: 'Assigned Leads', value: '58', trend: '+12', subText: 'this week', icon: '🎯', positive: true },
-      { key: 'visits', label: 'Site Visits', value: '21', trend: '+5', subText: 'scheduled', icon: '📍', positive: true },
-      { key: 'deals', label: 'Closed Deals', value: '9', trend: '+2', subText: 'this month', icon: '✅', positive: true },
-    ],
-    orders: [
-      { id: '#V-3011', name: 'Kavitha Rao', type: '2BHK Flat', value: '₹52L', status: 'Closed' },
-      { id: '#V-3010', name: 'Mohan Bhatia', type: 'Plot', value: '₹29L', status: 'In Progress' },
-      { id: '#V-3009', name: 'Lakshmi Nair', type: 'Villa', value: '₹1.1Cr', status: 'In Progress' },
-      { id: '#V-3008', name: 'Tarun Seth', type: '3BHK Flat', value: '₹68L', status: 'Cancelled' },
-    ],
-    chartLabel: 'Visits Conducted (Monthly)',
-    chartData: [
-      { month: 'Jan', height: 30 }, { month: 'Feb', height: 45 },
-      { month: 'Mar', height: 60 }, { month: 'Apr', height: 50 },
-      { month: 'May', height: 85 }, { month: 'Jun', height: 70 },
-    ],
-    tableHeaders: ['Visit ID', 'Client', 'Property', 'Value', 'Status'],
-  },
-
-  OWNER: {
-    greeting: 'Owner',
-    subtitle: 'Your listed properties, inquiries & visit requests.',
-    stats: [
-      { key: 'myprops', label: 'My Properties', value: '6', trend: '+1', subText: 'this month', icon: '🏠', positive: true },
-      { key: 'inquiries', label: 'Property Inquiries', value: '38', trend: '+9', subText: 'this week', icon: '📬', positive: true },
-      { key: 'visitreqs', label: 'Visit Requests', value: '14', trend: '+3', subText: 'pending', icon: '📅', positive: true },
-      { key: 'listings', label: 'Active Listings', value: '4', trend: 'Live', subText: 'on market', icon: '📌', positive: false },
-    ],
-    orders: [
-      { id: '#P-4001', name: 'Flat 4B, Whitefield', type: '2BHK', value: '₹65L', status: 'In Progress' },
-      { id: '#P-4002', name: 'Plot 12, Sarjapur', type: 'Plot', value: '₹32L', status: 'Closed' },
-      { id: '#P-4003', name: 'Villa 3, HSR Layout', type: 'Villa', value: '₹1.6Cr', status: 'In Progress' },
-      { id: '#P-4004', name: 'Shop 7, MG Road', type: 'Comm.', value: '₹88L', status: 'Cancelled' },
-    ],
-    chartLabel: 'Inquiry Trend (Monthly)',
-    chartData: [
-      { month: 'Jan', height: 20 }, { month: 'Feb', height: 35 },
-      { month: 'Mar', height: 55 }, { month: 'Apr', height: 40 },
-      { month: 'May', height: 80 }, { month: 'Jun', height: 65 },
-    ],
-    tableHeaders: ['Property ID', 'Property', 'Type', 'Ask Price', 'Status'],
-  },
-};
+import {
+  getDashboardStatsApi,
+  getAdminStatsApi,
+  getLogsApi,
+} from '../../services/auth.api';
 
 /* ─────────────────────────────────────────────
     COLOR SYSTEM
@@ -138,37 +35,138 @@ const C = {
   blueText: '#0A4DB8',
 };
 
+const roleMap = {
+  "Super Admin": "SUPER_ADMIN",
+  "Admin A": "ADMIN_A",
+  "Admin B": "ADMIN_B",
+  "Broker": "BROKER",
+  "Owner": "OWNER",
+};
+
 /* ─────────────────────────────────────────────
     STATUS BADGE CONFIG
 ───────────────────────────────────────────── */
-const statusStyle = (status) => ({
-  padding: '5px 12px',
-  borderRadius: '20px',
-  fontSize: '11px',
-  fontWeight: '700',
-  letterSpacing: '0.04em',
-  textTransform: 'uppercase',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '5px',
-  backgroundColor:
-    status === 'Closed' ? C.successBg :
-      status === 'In Progress' ? C.warningBg : C.dangerBg,
-  color:
-    status === 'Closed' ? C.success :
-      status === 'In Progress' ? C.warning : C.danger,
-  border: `1px solid ${status === 'Closed' ? C.successBorder :
-    status === 'In Progress' ? C.warningBorder : C.dangerBorder
-    }`,
-});
+const propertyStatusStyle = (status) => {
+  const normalized = (status || '').toLowerCase();
+  let bgColor, txtColor, borderClr, label;
+  if (normalized === 'approved' || normalized === 'sold') {
+    bgColor = C.successBg;
+    txtColor = C.success;
+    borderClr = C.successBorder;
+    label = status;
+  } else if (normalized === 'pending' || normalized === 'in progress') {
+    bgColor = C.warningBg;
+    txtColor = C.warning;
+    borderClr = C.warningBorder;
+    label = status;
+  } else {
+    bgColor = C.dangerBg;
+    txtColor = C.danger;
+    borderClr = C.dangerBorder;
+    label = status || 'Rejected';
+  }
+  return {
+    padding: '5px 12px',
+    borderRadius: '20px',
+    fontSize: '11px',
+    fontWeight: '700',
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    backgroundColor: bgColor,
+    color: txtColor,
+    border: `1px solid ${borderClr}`,
+  };
+};
 
-const statusDot = (status) => ({
-  width: '6px', height: '6px', borderRadius: '50%',
-  backgroundColor:
-    status === 'Closed' ? C.success :
-      status === 'In Progress' ? C.warning : C.danger,
-  flexShrink: 0,
-});
+const propertyStatusDot = (status) => {
+  const normalized = (status || '').toLowerCase();
+  let bg;
+  if (normalized === 'approved' || normalized === 'sold') bg = C.success;
+  else if (normalized === 'pending' || normalized === 'in progress') bg = C.warning;
+  else bg = C.danger;
+  return { width: '6px', height: '6px', borderRadius: '50%', backgroundColor: bg, flexShrink: 0 };
+};
+
+/* ─────────────────────────────────────────────
+    LOADING SPINNER
+───────────────────────────────────────────── */
+const LoadingSpinner = () => (
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '60vh',
+    gap: '16px',
+  }}>
+    <div style={{
+      width: '48px',
+      height: '48px',
+      border: `4px solid ${C.border}`,
+      borderTopColor: C.primaryBlue,
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite',
+    }} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <span style={{ fontSize: '14px', color: C.textLight, fontWeight: '600' }}>
+      Loading dashboard...
+    </span>
+  </div>
+);
+
+/* ─────────────────────────────────────────────
+    ERROR STATE
+───────────────────────────────────────────── */
+const ErrorState = ({ message, onRetry }) => (
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '60vh',
+    gap: '16px',
+  }}>
+    <div style={{
+      width: '56px',
+      height: '56px',
+      borderRadius: '14px',
+      background: C.dangerBg,
+      border: `1px solid ${C.dangerBorder}`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '26px',
+    }}>⚠️</div>
+    <p style={{ fontSize: '15px', color: C.textDark, fontWeight: '700', margin: 0 }}>
+      Something went wrong
+    </p>
+    <p style={{ fontSize: '13px', color: C.textLight, margin: 0, textAlign: 'center', maxWidth: '360px' }}>
+      {message || 'Failed to load dashboard data. Please try again.'}
+    </p>
+    {onRetry && (
+      <button
+        onClick={onRetry}
+        style={{
+          background: `linear-gradient(135deg, ${C.primaryBlue}, ${C.secondaryBlue})`,
+          color: '#fff',
+          border: 'none',
+          padding: '10px 24px',
+          borderRadius: '10px',
+          fontWeight: '700',
+          fontSize: '13px',
+          cursor: 'pointer',
+          boxShadow: '0 4px 14px rgba(10,77,184,0.25)',
+          marginTop: '4px',
+        }}
+      >
+        Retry
+      </button>
+    )}
+  </div>
+);
 
 /* ─────────────────────────────────────────────
     DASHBOARD COMPONENT
@@ -177,47 +175,88 @@ const Dashboard = () => {
   const [activeRole, setActiveRole] = useState('SUPER_ADMIN');
   const [displayRoleName, setDisplayRoleName] = useState('Super Admin');
   const [userName, setUserName] = useState('');
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  );
   const [hoveredCard, setHoveredCard] = useState(null);
   const [btnHover, setBtnHover] = useState(false);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [adminStats, setAdminStats] = useState(null);
+  const [logs, setLogs] = useState([]);
+
+  const isSuperAdmin = activeRole === 'SUPER_ADMIN';
+  const isAdminA = activeRole === 'ADMIN_A';
+  const isAdminB = activeRole === 'ADMIN_B';
+  const isAdminLike = isAdminA || isAdminB;
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (isSuperAdmin) {
+        const [dashRes, logsRes] = await Promise.all([
+          getDashboardStatsApi(),
+          getLogsApi({ page: 1, limit: 10 }),
+        ]);
+        setDashboardStats(dashRes.data?.data || dashRes.data || {});
+        const logData = logsRes.data?.data;
+        setLogs(Array.isArray(logData) ? logData : Array.isArray(logData?.logs) ? logData.logs : []);
+      } else if (isAdminLike) {
+        const [adminRes, logsRes] = await Promise.all([
+          getAdminStatsApi(),
+          getLogsApi({ page: 1, limit: 10 }),
+        ]);
+        setAdminStats(adminRes.data?.data || adminRes.data || {});
+        const logData = logsRes.data?.data;
+        setLogs(Array.isArray(logData) ? logData : Array.isArray(logData?.logs) ? logData.logs : []);
+      } else {
+        const logsRes = await getLogsApi({ page: 1, limit: 10 });
+        const logData = logsRes.data?.data;
+        setLogs(Array.isArray(logData) ? logData : Array.isArray(logData?.logs) ? logData.logs : []);
+      }
+    } catch (err) {
+      console.error('Dashboard fetch error:', err);
+      setError(
+        err?.response?.data?.message ||
+        err?.message ||
+        'Unable to load dashboard data. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-
-        setUserName(parsedUser.full_name || "");
-
-        // Dynamically save the raw API role name for the badge
+        setUserName(parsedUser.full_name || '');
         if (parsedUser.role_name) {
           setDisplayRoleName(parsedUser.role_name);
         }
-
-        // Exact match mapping for internal UI configuration selection
-        const roleMap = {
-          "Super Admin": "SUPER_ADMIN",
-          "Broker": "BROKER",
-          "Agent": "AGENT",
-          "Owner": "OWNER",
-        };
-
-        setActiveRole(roleMap[parsedUser.role_name] || "SUPER_ADMIN");
-      } catch (error) {
-        console.error("Error reading token configurations: ", error);
+        setActiveRole(roleMap[parsedUser.role_name] || 'SUPER_ADMIN');
+      } catch (err) {
+        console.error('Error reading user from localStorage:', err);
       }
     }
 
     const onResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [activeRole]);
 
   const isMobile = windowWidth <= 768;
   const isTablet = windowWidth > 768 && windowWidth <= 1024;
-
-  const data = ROLE_DATA[activeRole] || ROLE_DATA.SUPER_ADMIN;
+  const statCols = isMobile ? 1 : isTablet ? 2 : 4;
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -226,7 +265,163 @@ const Dashboard = () => {
     return 'Good Evening';
   };
 
-  const statCols = isMobile ? 1 : isTablet ? 2 : 4;
+  const formatCurrency = (val) => {
+    if (val == null) return '₹0';
+    const num = Number(val);
+    if (isNaN(num)) return val;
+    if (num >= 10000000) return `₹${(num / 10000000).toFixed(1)}Cr`;
+    if (num >= 100000) return `₹${(num / 100000).toFixed(1)}L`;
+    if (num >= 1000) return `₹${(num / 1000).toFixed(1)}K`;
+    return `₹${num.toLocaleString('en-IN')}`;
+  };
+
+  const formatNumber = (val) => {
+    if (val == null) return '0';
+    const num = Number(val);
+    if (isNaN(num)) return val;
+    return num.toLocaleString('en-IN');
+  };
+
+  const buildSuperAdminStats = () => {
+    if (!dashboardStats) return [];
+    return [
+      {
+        key: 'totalUsers',
+        label: 'Total Users',
+        value: formatNumber(dashboardStats.totalUsers),
+        icon: '👥',
+        positive: true,
+        trend: '',
+        subText: 'registered users',
+      },
+      {
+        key: 'totalProperties',
+        label: 'Total Properties',
+        value: formatNumber(dashboardStats.totalProperties),
+        icon: '🏢',
+        positive: true,
+        trend: '',
+        subText: `${formatNumber(dashboardStats.pendingProperties)} pending review`,
+      },
+      {
+        key: 'pendingProperties',
+        label: 'Pending Reviews',
+        value: formatNumber(dashboardStats.pendingProperties),
+        icon: '📋',
+        positive: false,
+        trend: '',
+        subText: `${formatNumber(dashboardStats.approvedProperties)} approved`,
+      },
+      {
+        key: 'totalLeads',
+        label: 'Total Leads',
+        value: formatNumber(dashboardStats.totalLeads),
+        icon: '🎯',
+        positive: true,
+        trend: '',
+        subText: 'lead inquiries',
+      },
+      {
+        key: 'totalBuyers',
+        label: 'Total Buyers',
+        value: formatNumber(dashboardStats.totalBuyers),
+        icon: '🛒',
+        positive: true,
+        trend: '',
+        subText: 'active buyers',
+      },
+      {
+        key: 'totalOwners',
+        label: 'Total Owners',
+        value: formatNumber(dashboardStats.totalOwners),
+        icon: '🏠',
+        positive: true,
+        trend: '',
+        subText: 'property owners',
+      },
+    ];
+  };
+
+  const buildAdminStats = () => {
+    if (!adminStats) return [];
+    return [
+      {
+        key: 'pendingReview',
+        label: 'Pending Review',
+        value: formatNumber(adminStats.pendingReview),
+        icon: '📋',
+        positive: false,
+        trend: '',
+        subText: 'awaiting your action',
+      },
+      {
+        key: 'totalApproved',
+        label: 'Total Approved',
+        value: formatNumber(adminStats.totalApproved),
+        icon: '✅',
+        positive: true,
+        trend: '',
+        subText: 'properties approved',
+      },
+      {
+        key: 'totalRejected',
+        label: 'Total Rejected',
+        value: formatNumber(adminStats.totalRejected),
+        icon: '❌',
+        positive: false,
+        trend: '',
+        subText: 'properties rejected',
+      },
+      {
+        key: 'myActivity',
+        label: 'My Activity',
+        value: formatNumber(adminStats.myActivity),
+        icon: '📊',
+        positive: true,
+        trend: '',
+        subText: 'actions this month',
+      },
+    ];
+  };
+
+  const currentStats = isSuperAdmin ? buildSuperAdminStats() : isAdminLike ? buildAdminStats() : [];
+
+  const recentProperties = isSuperAdmin
+    ? Array.isArray(dashboardStats?.recentProperties)
+      ? dashboardStats.recentProperties.slice(0, 6)
+      : []
+    : [];
+
+  const recentTableHeaders = ['ID', 'Title', 'City', 'Price', 'Status'];
+
+  const tableHeaders = isSuperAdmin || isAdminLike ? recentTableHeaders : ['ID', 'Description', 'Action'];
+
+  const getLogsTableData = () => {
+    return logs.slice(0, 8).map((log, idx) => {
+      const logId = log.id || log._id || idx + 1;
+      const desc =
+        log.description ||
+        log.message ||
+        log.action ||
+        log.activity ||
+        `Activity #${logId}`;
+      return { id: logId, desc };
+    });
+  };
+
+  const showRecentPropertiesTable = isSuperAdmin && recentProperties.length > 0;
+  const showLogsTable = logs.length > 0;
+
+  const formatPrice = (price) => {
+    if (price == null) return '-';
+    const num = Number(price);
+    if (isNaN(num)) return price;
+    return formatCurrency(num);
+  };
+
+  const getStatusLabel = (property) => {
+    return property.status || property.status_name || 'Pending';
+  };
 
   /* ── INLINE STYLES ── */
   const S = {
@@ -317,15 +512,19 @@ const Dashboard = () => {
     },
     cardAccentBar: {
       position: 'absolute',
-      top: 0, left: 0,
-      width: '4px', height: '100%',
+      top: 0,
+      left: 0,
+      width: '4px',
+      height: '100%',
       borderRadius: '18px 0 0 18px',
       background: `linear-gradient(180deg, ${C.primaryBlue}, ${C.primaryGreen})`,
     },
     cardIconBox: {
       position: 'absolute',
-      top: '20px', right: '20px',
-      width: '42px', height: '42px',
+      top: '20px',
+      right: '20px',
+      width: '42px',
+      height: '42px',
       borderRadius: '10px',
       background: C.blueBg,
       border: `1px solid ${C.blueBorder}`,
@@ -387,33 +586,6 @@ const Dashboard = () => {
       fontSize: '12px',
       color: C.textLight,
     },
-    chartContainer: {
-      display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'space-between',
-      height: '200px',
-      paddingTop: '28px',
-      gap: '10px',
-      marginTop: '24px',
-    },
-    bar: (height, active) => ({
-      width: '100%',
-      height: `${height}%`,
-      background: active
-        ? `linear-gradient(180deg, ${C.primaryBlue} 0%, ${C.secondaryBlue} 100%)`
-        : `linear-gradient(180deg, ${C.primaryGreen}44 0%, ${C.primaryGreen}11 100%)`,
-      borderRadius: '6px 6px 3px 3px',
-      border: active ? 'none' : `1px solid ${C.primaryGreen}33`,
-      transition: 'all 0.3s ease',
-      position: 'relative',
-    }),
-    barLabel: {
-      textAlign: 'center',
-      fontSize: '11px',
-      fontWeight: '600',
-      color: C.textLight,
-      marginTop: '8px',
-    },
     chartViewToggle: {
       padding: '6px 12px',
       borderRadius: '8px',
@@ -471,7 +643,59 @@ const Dashboard = () => {
       borderBottom: `1px solid ${C.border}`,
       verticalAlign: 'middle',
     },
+    emptyState: {
+      padding: '48px 20px',
+      textAlign: 'center',
+      color: C.textLight,
+      fontSize: '14px',
+    },
   };
+
+  const renderSubtitle = () => {
+    if (isSuperAdmin && dashboardStats) {
+      return `Full platform overview — ${formatNumber(dashboardStats.totalProperties)} properties, ${formatNumber(dashboardStats.totalUsers)} users across all regions.`;
+    }
+    if (isAdminLike && adminStats) {
+      return `${formatNumber(adminStats.pendingReview)} properties pending your review, ${formatNumber(adminStats.totalApproved)} approved so far.`;
+    }
+    if (isSuperAdmin) return 'Full platform overview — all regions, all teams.';
+    if (isAdminLike) return 'Review properties and manage your assigned workload.';
+    return 'Your activity overview.';
+  };
+
+  if (loading) {
+    return (
+      <div style={S.page}>
+        <div style={S.header}>
+          <div>
+            <div style={S.roleTag}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: C.primaryGreen, display: 'inline-block' }} />
+              {displayRoleName}
+            </div>
+            <h1 style={S.title}>{getGreeting()}{userName ? `, ${userName}` : ''}</h1>
+          </div>
+        </div>
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={S.page}>
+        <div style={S.header}>
+          <div>
+            <div style={S.roleTag}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: C.primaryGreen, display: 'inline-block' }} />
+              {displayRoleName}
+            </div>
+            <h1 style={S.title}>{getGreeting()}{userName ? `, ${userName}` : ''}</h1>
+          </div>
+        </div>
+        <ErrorState message={error} onRetry={fetchDashboardData} />
+      </div>
+    );
+  }
 
   return (
     <div style={S.page}>
@@ -483,9 +707,9 @@ const Dashboard = () => {
             {displayRoleName}
           </div>
           <h1 style={S.title}>
-            {getGreeting()}{userName ? `, ${userName}` : `, ${data.greeting}`}
+            {getGreeting()}{userName ? `, ${userName}` : ''}
           </h1>
-          <div style={S.subtitle}>{data.subtitle}</div>
+          <div style={S.subtitle}>{renderSubtitle()}</div>
         </div>
         <div style={{ width: isMobile ? '100%' : 'auto' }}>
           <button
@@ -500,7 +724,7 @@ const Dashboard = () => {
 
       {/* ── STAT CARDS ── */}
       <div style={S.grid}>
-        {data.stats.map((stat) => (
+        {currentStats.map((stat) => (
           <div
             key={stat.key}
             onMouseEnter={() => setHoveredCard(stat.key)}
@@ -511,108 +735,149 @@ const Dashboard = () => {
             <div style={S.cardIconBox}>{stat.icon}</div>
             <div style={S.cardLabel}>{stat.label}</div>
             <div style={S.cardValue}>{stat.value}</div>
-            <div style={S.cardTrend(stat.positive)}>
-              <span>{stat.positive ? '↑' : '●'} {stat.trend}</span>
-              <span style={S.cardTrendSub}>{stat.subText}</span>
-            </div>
+            {(stat.trend || stat.subText) && (
+              <div style={S.cardTrend(stat.positive)}>
+                {stat.trend && <span>{stat.positive ? '↑' : '●'} {stat.trend}</span>}
+                <span style={S.cardTrendSub}>{stat.subText}</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {/* ── CHART + TABLE ── */}
+      {/* ── BOTTOM SECTION: RECENT PROPERTIES + ACTIVITY ── */}
       <div style={S.sectionGrid}>
-        {/* Revenue / Trend Chart */}
-        <div style={S.sectionCard}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h2 style={S.sectionTitle}>{data.chartLabel}</h2>
-              <div style={S.sectionSub}>6-month performance trend</div>
+        {/* Recent Properties Table (Super Admin) */}
+        {showRecentPropertiesTable && (
+          <div style={S.sectionCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h2 style={S.sectionTitle}>Recent Properties</h2>
+                <div style={S.sectionSub}>Latest property listings across the platform</div>
+              </div>
+              <span style={S.chartViewToggle}>Monthly ▾</span>
             </div>
-            <span style={S.chartViewToggle}>Monthly ▾</span>
-          </div>
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '200px', paddingBottom: '20px', paddingRight: '4px' }}>
-              {['100', '75', '50', '25', '0'].map(l => (
-                <span key={l} style={{ fontSize: '10px', color: C.textLight, fontWeight: '600' }}>{l}</span>
-              ))}
+            <div style={S.tableWrapper}>
+              <table style={S.table}>
+                <thead>
+                  <tr style={{ background: C.lightBg }}>
+                    {recentTableHeaders.map((h, i) => (
+                      <th
+                        key={h}
+                        style={{
+                          ...S.th,
+                          ...(i === 0 ? S.thFirst : {}),
+                          ...(i === recentTableHeaders.length - 1 ? S.thLast : {}),
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentProperties.map((prop, idx) => (
+                    <tr
+                      key={prop.id || prop._id || idx}
+                      style={{ background: idx % 2 === 0 ? '#ffffff' : C.lightBg + '88' }}
+                    >
+                      <td style={S.tdId}>#{prop.id || prop._id || idx + 1}</td>
+                      <td style={S.tdBold}>{prop.title || prop.name || '-'}</td>
+                      <td style={S.td}>{prop.city || prop.location || '-'}</td>
+                      <td style={S.tdBold}>{formatPrice(prop.price)}</td>
+                      <td style={S.td}>
+                        <span style={propertyStatusStyle(getStatusLabel(prop))}>
+                          <span style={propertyStatusDot(getStatusLabel(prop))} />
+                          {getStatusLabel(prop)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={S.chartContainer}>
-                {data.chartData.map((item, idx) => (
-                  <div key={item.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'flex-end', alignItems: 'center' }}>
-                    <div style={S.bar(item.height, idx === data.chartData.length - 2)} />
-                    <div style={S.barLabel}>{item.month}</div>
-                  </div>
-                ))}
+          </div>
+        )}
+
+        {/* Empty state for recent properties if none */}
+        {isSuperAdmin && !showRecentPropertiesTable && (
+          <div style={S.sectionCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h2 style={S.sectionTitle}>Recent Properties</h2>
+                <div style={S.sectionSub}>Latest property listings across the platform</div>
               </div>
             </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: C.textLight }}>
-              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: `linear-gradient(135deg, ${C.primaryBlue}, ${C.secondaryBlue})`, display: 'inline-block' }} />
-              Peak Month
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: C.textLight }}>
-              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: `${C.primaryGreen}44`, border: `1px solid ${C.primaryGreen}33`, display: 'inline-block' }} />
-              Regular
+            <div style={S.emptyState}>
+              <p style={{ margin: 0, fontSize: '14px', color: C.textLight }}>
+                No recent properties found.
+              </p>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Recent Orders / Activity Table */}
-        <div style={S.sectionCard}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h2 style={S.sectionTitle}>Recent Activity</h2>
-              <div style={S.sectionSub}>Latest transactions for your role</div>
+        {/* Activity Log / Admin Activity Table */}
+        {showLogsTable && (
+          <div style={S.sectionCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h2 style={S.sectionTitle}>
+                  {isAdminLike ? 'My Activity' : 'Recent Activity'}
+                </h2>
+                <div style={S.sectionSub}>
+                  {isAdminLike ? 'Your recent actions and updates' : 'Latest platform activity'}
+                </div>
+              </div>
+              <span style={{ ...S.chartViewToggle, color: C.primaryGreen, background: C.successBg, borderColor: C.successBorder }}>
+                View All →
+              </span>
             </div>
-            <span style={{ ...S.chartViewToggle, color: C.primaryGreen, background: C.successBg, borderColor: C.successBorder }}>
-              View All →
-            </span>
-          </div>
 
-          <div style={S.tableWrapper}>
-            <table style={S.table}>
-              <thead>
-                <tr style={{ background: C.lightBg }}>
-                  {data.tableHeaders.map((h, i) => (
-                    <th
-                      key={h}
-                      style={{
-                        ...S.th,
-                        ...(i === 0 ? S.thFirst : {}),
-                        ...(i === data.tableHeaders.length - 1 ? S.thLast : {}),
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.orders.map((order, idx) => (
-                  <tr
-                    key={idx}
-                    style={{ background: idx % 2 === 0 ? '#ffffff' : C.lightBg + '88' }}
-                  >
-                    <td style={S.tdId}>{order.id}</td>
-                    <td style={S.td}>{order.name}</td>
-                    <td style={S.td}>{order.type}</td>
-                    <td style={S.tdBold}>{order.value}</td>
-                    <td style={S.td}>
-                      <span style={statusStyle(order.status)}>
-                        <span style={statusDot(order.status)} />
-                        {order.status}
-                      </span>
-                    </td>
+            <div style={S.tableWrapper}>
+              <table style={S.table}>
+                <thead>
+                  <tr style={{ background: C.lightBg }}>
+                    <th style={{ ...S.th, ...S.thFirst, width: '80px' }}>ID</th>
+                    <th style={{ ...S.th, ...S.thLast }}>Description</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {getLogsTableData().map((log, idx) => (
+                    <tr
+                      key={log.id}
+                      style={{ background: idx % 2 === 0 ? '#ffffff' : C.lightBg + '88' }}
+                    >
+                      <td style={S.tdId}>#{log.id}</td>
+                      <td style={S.tdBold}>{log.desc}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Empty state for logs */}
+        {!showLogsTable && (
+          <div style={S.sectionCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h2 style={S.sectionTitle}>
+                  {isAdminLike ? 'My Activity' : 'Recent Activity'}
+                </h2>
+                <div style={S.sectionSub}>
+                  {isAdminLike ? 'Your recent actions and updates' : 'Latest platform activity'}
+                </div>
+              </div>
+            </div>
+            <div style={S.emptyState}>
+              <p style={{ margin: 0, fontSize: '14px', color: C.textLight }}>
+                No recent activity found.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -8,7 +8,9 @@ export const setToken = (token) => {
 
 export const logout = () => {
   localStorage.removeItem("access_token");
-  window.location.href = "/login";
+  localStorage.removeItem("user");
+  localStorage.removeItem("role");
+  window.location.href = "/";
 };
 
 export const isAuthenticated = () => {
