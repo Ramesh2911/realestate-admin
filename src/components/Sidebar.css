@@ -1,109 +1,116 @@
-:root {
-  --primary-blue:    #0A4DB8;
-  --secondary-blue:  #003D99;
-  --primary-green:   #7AC943;
-  --secondary-green: #5FAF2F;
-  --light-bg:        #F5FAF3;
-  --white:           #ffffff;
-  --text-dark:       #1b2b4b;
-  --text-light:      #6c7a89;
-  --border-color:    #dce8d8;
-
-  /* Sidebar-specific tokens */
-  --sb-bg:           #ffffff;
-  --sb-border:       var(--border-color);
-  --sb-item-hover:   rgba(10, 77, 184, 0.06);
-  --sb-item-active:  rgba(10, 77, 184, 0.09);
-  --sb-active-text:  var(--primary-blue);
-  --sb-active-icon:  var(--primary-blue);
-  --sb-text:         var(--text-light);
-  --sb-text-hover:   var(--text-dark);
-  --sb-scrollbar:    #c8dbc4;
-}
-
 /* ==========================================================================
-   SIDEBAR SHELL
+   PREMIUM DARK GLASS SIDEBAR
    ========================================================================== */
 
 .sidebar {
-  width: 240px;
-  background: var(--sb-bg);
-  border-right: 1px solid var(--sb-border);
-  height: 100vh;
+  width: var(--sidebar-w, 264px);
+  height: 100%;
+  flex-shrink: 0;
+  background: var(--shell-sidebar-bg);
+  border-right: 1px solid var(--shell-border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   padding: 0;
   z-index: 2000;
+  position: relative;
+  transition: width 0.28s var(--ease);
 }
 
-/* Top logo strip (optional, shown when no header logo exists) */
-.sidebar-logo-strip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 18px 16px 14px;
-  border-bottom: 1px solid var(--sb-border);
-  flex-shrink: 0;
+/* Right-edge glow */
+.sidebar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 77, 184, 0.5),
+    rgba(122, 201, 67, 0.35),
+    transparent
+  );
+  pointer-events: none;
 }
 
-.sidebar-logo-strip img {
-  height: 32px;
-  width: auto;
-}
-
-.sidebar-logo-strip span {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--primary-blue);
-  letter-spacing: 0.3px;
-}
-
-/* Section label */
-.sidebar-section-label {
-  padding: 12px 16px 4px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--primary-green);
+.sidebar.collapsed {
+  width: var(--sidebar-w-mini, 76px);
 }
 
 /* ==========================================================================
-   MOBILE HEADER (shown only on mobile)
+   MOBILE DRAWER HEADER (hidden on desktop)
    ========================================================================== */
 
 .sidebar-mobile-header {
   display: none;
-  padding: 16px;
-  border-bottom: 1px solid var(--sb-border);
-  background: var(--sb-bg);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--shell-border);
+  background: rgba(255, 255, 255, 0.03);
   flex-shrink: 0;
 }
 
+.mobile-brand img {
+  height: 34px;
+  width: auto;
+  filter: brightness(0) invert(1);
+}
+
 .sidebar-close {
-  display: none;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
-  font-size: 18px;
-  cursor: pointer;
-  color: var(--text-light);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  background: var(--shell-surface);
+  border: 1px solid var(--shell-border);
+  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--shell-text);
   transition: all 0.18s ease;
 }
 
 .sidebar-close:hover {
-  background: rgba(10, 77, 184, 0.06);
-  color: var(--primary-blue);
-  border-color: rgba(10, 77, 184, 0.25);
+  background: rgba(244, 63, 94, 0.12);
+  color: var(--accent-danger);
+  border-color: rgba(244, 63, 94, 0.4);
 }
 
 .sidebar-backdrop {
   display: none;
+}
+
+/* ==========================================================================
+   SECTION LABELS
+   ========================================================================== */
+
+.sidebar-section-label {
+  padding: 18px 12px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--shell-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-group + .sidebar-group .sidebar-section-label {
+  padding-top: 14px;
+}
+
+.sidebar.collapsed .sidebar-section-label {
+  opacity: 0;
+  height: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar.collapsed .sidebar-group + .sidebar-group .sidebar-item:first-of-type {
+  margin-top: 8px;
 }
 
 /* ==========================================================================
@@ -113,19 +120,22 @@
 .sidebar-menu {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px 10px;
-  padding-bottom: 48px;
+  padding: 6px 12px 16px;
 }
 
-.sidebar-menu::-webkit-scrollbar        { width: 4px; }
-.sidebar-menu::-webkit-scrollbar-thumb  { background-color: var(--sb-scrollbar); border-radius: 4px; }
-.sidebar-menu::-webkit-scrollbar-thumb:hover { background-color: #a8c4a3; }
-.sidebar-menu::-webkit-scrollbar-track  { background: transparent; }
+.sidebar-menu::-webkit-scrollbar { width: 4px; }
+.sidebar-menu::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+}
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+.sidebar-menu::-webkit-scrollbar-track { background: transparent; }
 
 /* ==========================================================================
    NAV ITEMS
@@ -134,35 +144,46 @@
 .sidebar-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  color: var(--sb-text);
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  color: var(--shell-text);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.18s ease;
-  border-left: 3px solid transparent;
+  transition: all 0.18s var(--ease);
+  border: 1px solid transparent;
   position: relative;
+  margin-bottom: 3px;
+  white-space: nowrap;
 }
 
 .sidebar-item:hover {
-  background: var(--sb-item-hover);
-  color: var(--sb-text-hover);
-  border-left-color: rgba(10, 77, 184, 0.20);
+  background: var(--shell-hover);
+  color: var(--shell-text-hi);
+  border-color: var(--shell-border);
+  transform: translateX(2px);
+}
+
+.sidebar-item:focus-visible {
+  outline: none;
+  border-color: var(--accent-blue-soft);
+  box-shadow: 0 0 0 3px rgba(10, 77, 184, 0.3);
 }
 
 .sidebar-item.active {
-  background: var(--sb-item-active);
-  color: var(--sb-active-text);
+  background: var(--shell-active-bg);
+  color: #fff;
   font-weight: 600;
-  border-left-color: var(--primary-blue);
+  border-color: rgba(77, 141, 255, 0.35);
+  box-shadow: 0 8px 20px rgba(10, 77, 184, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* Active green accent dot */
 .sidebar-item.active::after {
-  content: '';
+  content: "";
   position: absolute;
   right: 12px;
   top: 50%;
@@ -170,7 +191,8 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--primary-green);
+  background: var(--accent-green);
+  box-shadow: 0 0 10px rgba(122, 201, 67, 0.9);
 }
 
 /* Icon */
@@ -178,121 +200,154 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1;
   width: 22px;
   flex-shrink: 0;
   color: inherit;
-  transition: color 0.18s ease;
-}
-
-.sidebar-item.active .sidebar-icon {
-  color: var(--primary-blue);
+  transition: all 0.18s ease;
 }
 
 .sidebar-item:hover .sidebar-icon {
-  color: var(--primary-blue);
+  color: var(--accent-blue);
+}
+
+.sidebar-item.active .sidebar-icon {
+  color: var(--accent-green);
 }
 
 /* Label */
 .sidebar-label {
-  white-space: nowrap;
   line-height: 1;
   margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ==========================================================================
-   WORKZONE EXPANDABLE SECTION
+   DROPDOWN / WORKZONE
    ========================================================================== */
 
 .workzone-header {
-  cursor: pointer;
-  justify-content: space-between;
   font-weight: 600;
-  color: var(--text-dark);
-  background: rgba(122, 201, 67, 0.06);
-  border: 1px solid rgba(122, 201, 67, 0.18);
-  border-left: 3px solid var(--primary-green);
-  border-radius: 10px;
-  margin-bottom: 2px;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .workzone-header:hover {
-  background: rgba(122, 201, 67, 0.10);
-  border-color: rgba(122, 201, 67, 0.30);
-  border-left-color: var(--secondary-green);
-  color: var(--text-dark);
+  color: #fff;
+}
+
+.workzone-header.active {
+  color: #fff;
 }
 
 .chevron {
-  transition: transform 0.2s ease;
-  font-size: 13px;
-  color: var(--text-light);
+  transition: transform 0.22s var(--ease);
+  font-size: 11px;
+  color: var(--shell-text-dim);
+  margin-left: auto;
 }
 
 .chevron.open {
   transform: rotate(180deg);
+  color: var(--accent-green);
 }
 
 /* Sub-items */
 .sub-item {
-  padding-left: 40px;
+  padding-left: 46px;
+  font-size: 13.5px;
+  color: var(--shell-text-dim);
+}
+
+.sub-item .sidebar-icon {
   font-size: 13px;
-  color: var(--text-light);
-  border-left: 3px solid transparent;
+  width: 16px;
 }
 
 .sub-item:hover {
-  color: var(--primary-blue);
-  background: var(--sb-item-hover);
-  border-left-color: rgba(10, 77, 184, 0.20);
+  color: #fff;
 }
 
 .sub-item.active {
-  color: var(--primary-blue);
-  background: var(--sb-item-active);
+  color: #fff;
   font-weight: 600;
-  border-left-color: var(--primary-blue);
+}
+
+.sub-item.active .sidebar-icon {
+  color: var(--accent-green);
 }
 
 /* Connector line for sub-items */
 .sub-item::before {
-  content: '';
+  content: "";
   position: absolute;
-  left: 24px;
+  left: 27px;
   top: 50%;
   transform: translateY(-50%);
-  width: 6px;
+  width: 8px;
   height: 1px;
-  background: var(--border-color);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.sub-item.active::before {
+  background: var(--accent-green);
+  box-shadow: 0 0 6px rgba(122, 201, 67, 0.8);
 }
 
 /* ==========================================================================
-   SIDEBAR FOOTER (user info strip)
+   COLLAPSED (icons only)
+   ========================================================================== */
+
+.sidebar.collapsed .sidebar-label,
+.sidebar.collapsed .chevron {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-item {
+  justify-content: center;
+  padding: 11px 0;
+  gap: 0;
+}
+
+.sidebar.collapsed .sidebar-item:hover {
+  transform: none;
+}
+
+.sidebar.collapsed .sub-item::before {
+  display: none;
+}
+
+/* ==========================================================================
+   FOOTER USER CARD
    ========================================================================== */
 
 .sidebar-footer {
-  padding: 12px 14px;
-  border-top: 1px solid var(--sb-border);
+  padding: 13px 14px;
+  border-top: 1px solid var(--shell-border);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   flex-shrink: 0;
-  background: var(--light-bg);
+  background: rgba(255, 255, 255, 0.03);
+  transition: justify-content 0.2s ease;
 }
 
 .sidebar-footer-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--primary-blue), var(--primary-green));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   color: #fff;
+  letter-spacing: 0.5px;
   flex-shrink: 0;
+  box-shadow: 0 6px 16px rgba(10, 77, 184, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 .sidebar-footer-info {
@@ -303,7 +358,7 @@
 .sidebar-footer-name {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-dark);
+  color: var(--shell-text-hi);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -311,40 +366,47 @@
 
 .sidebar-footer-role {
   font-size: 11px;
-  color: var(--text-light);
+  font-weight: 500;
+  color: var(--accent-green);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 2px;
 }
 
-/* ==========================================================================
-   HAMBURGER (used in main layout, shown on mobile)
-   ========================================================================== */
+.sidebar.collapsed .sidebar-footer {
+  justify-content: center;
+  padding: 13px 8px;
+}
 
-.hamburger {
+.sidebar.collapsed .sidebar-footer-info {
   display: none;
 }
 
 /* ==========================================================================
-   MOBILE RESPONSIVE
+   MOBILE RESPONSIVE — off-canvas drawer
    ========================================================================== */
 
 @media (max-width: 768px) {
-  .sidebar {
+  .sidebar,
+  .sidebar.collapsed {
     position: fixed;
     top: 0;
     left: 0;
     height: 100vh;
-    width: 268px;
+    width: 276px;
     transform: translateX(-100%);
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    background: var(--sb-bg);
-    box-shadow: 6px 0 32px rgba(10, 77, 184, 0.12);
+    transition: transform 0.28s var(--ease);
+    box-shadow: 18px 0 50px rgba(0, 0, 0, 0.45);
     padding: 0;
   }
 
   .sidebar.open {
     transform: translateX(0);
+  }
+
+  .sidebar::after {
+    display: none;
   }
 
   .sidebar-mobile-header {
@@ -354,28 +416,292 @@
     gap: 10px;
   }
 
-  .sidebar-close {
-    display: inline-flex;
+  .sidebar.collapsed .sidebar-label,
+  .sidebar.collapsed .chevron {
+    display: initial;
+  }
+
+  .sidebar.collapsed .sidebar-section-label {
+    display: block;
+    opacity: 1;
+    height: auto;
+    padding: 18px 12px 8px;
+  }
+
+  .sidebar.collapsed .sidebar-item {
+    justify-content: flex-start;
+    padding: 11px 12px;
+    gap: 12px;
+  }
+
+  .sidebar.collapsed .sidebar-footer {
+    justify-content: flex-start;
+    padding: 13px 14px;
+  }
+
+  .sidebar.collapsed .sidebar-footer-info {
+    display: block;
   }
 
   .sidebar-backdrop {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 30, 80, 0.30);
-    backdrop-filter: blur(2px);
-    z-index: 1500;
+    background: rgba(2, 6, 20, 0.6);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 1900;
+    animation: sb-fade 0.2s ease;
+  }
+}
+
+@keyframes sb-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ==========================================================================
+   WORKSPACE SECTION — premium glass card, color chips, rail, live badges
+   ========================================================================== */
+
+.sidebar-group.is-workspace {
+  position: relative;
+  margin: 6px 0 10px;
+  padding: 4px 8px 8px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 26px rgba(2, 6, 20, 0.28);
+  transition: border-color 0.2s ease, box-shadow 0.25s ease;
+}
+
+.sidebar-group.is-workspace:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Blue → green edge accent */
+.sidebar-group.is-workspace::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 16px;
+  bottom: 16px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #4d8dff, #7ac943);
+  box-shadow: 0 0 12px rgba(77, 141, 255, 0.55);
+}
+
+.sidebar-group.is-workspace > .sidebar-section-label {
+  padding: 8px 4px 4px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ── Color icon chips ── */
+.sidebar-group.is-workspace .sidebar-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  color: var(--chip, #4d8dff);
+  background: color-mix(in srgb, var(--chip, #4d8dff) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip, #4d8dff) 32%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.2s var(--ease);
+}
+
+.sidebar-group.is-workspace .sidebar-item:hover .sidebar-chip {
+  background: color-mix(in srgb, var(--chip, #4d8dff) 26%, transparent);
+  border-color: color-mix(in srgb, var(--chip, #4d8dff) 55%, transparent);
+  transform: translateY(-1px);
+}
+
+.sidebar-group.is-workspace .sidebar-item.active .sidebar-chip {
+  background: color-mix(in srgb, var(--chip, #4d8dff) 85%, #061026);
+  color: #fff;
+  border-color: color-mix(in srgb, var(--chip, #4d8dff) 65%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--chip, #4d8dff) 45%, transparent);
+}
+
+.sidebar-group.is-workspace .sidebar-chip.sidebar-chip-sm {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+}
+
+/* ── Animated submenu (grid-rows 0fr → 1fr) ── */
+.submenu {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows 0.3s var(--ease), visibility 0s linear 0.3s;
+}
+
+.submenu.open {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition: grid-template-rows 0.3s var(--ease), visibility 0s linear 0s;
+}
+
+.submenu-inner {
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
+}
+
+/* ── Vertical rail (workspace dropdowns only) ── */
+.sidebar-group.is-workspace .submenu-inner::before {
+  content: "";
+  position: absolute;
+  left: 32px;
+  top: 4px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--chip, #4d8dff) 65%, transparent),
+    color-mix(in srgb, var(--chip, #4d8dff) 15%, transparent)
+  );
+  pointer-events: none;
+}
+
+/* Replace generic horizontal connector inside workspace */
+.sidebar-group.is-workspace .sub-item::before {
+  display: none;
+}
+
+/* ── Sub-items ── */
+.sidebar-group.is-workspace .sub-item {
+  padding-left: 22px;
+  gap: 10px;
+}
+
+.sidebar-group.is-workspace .sub-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  transform: translateX(3px);
+}
+
+.sidebar-group.is-workspace .sub-item.active {
+  background: color-mix(in srgb, var(--chip, #4d8dff) 18%, transparent);
+  border-color: color-mix(in srgb, var(--chip, #4d8dff) 45%, transparent);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(2, 6, 20, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.sidebar-group.is-workspace .sub-item.active .sidebar-chip-sm {
+  background: var(--chip, #4d8dff);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--chip, #4d8dff) 65%, transparent);
+}
+
+.sidebar-group.is-workspace .sub-item.active::after {
+  display: none;
+}
+
+/* ── Dropdown header states ── */
+.sidebar-group.is-workspace .workzone-header {
+  gap: 6px;
+  padding: 11px 8px;
+}
+
+.sidebar-group.is-workspace .workzone-header .sidebar-label {
+  font-size: 12.5px;
+}
+
+.sidebar-group.is-workspace .workzone-header .side-badge {
+  padding: 3px 4px;
+  font-size: 9px;
+}
+
+.sidebar-group.is-workspace .workzone-header.active,
+.sidebar-group.is-workspace .workzone-header.is-open {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-group.is-workspace .workzone-header.is-open .sidebar-chip {
+  background: color-mix(in srgb, var(--chip, #4d8dff) 32%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--chip, #4d8dff) 55%, transparent);
+}
+
+.sidebar-group.is-workspace .workzone-header .chevron {
+  margin-left: 2px;
+}
+
+/* ── Live count badges ── */
+.side-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+.sidebar-item:hover .side-badge {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.sidebar-item.active .side-badge {
+  background: var(--chip, #4d8dff);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--chip, #4d8dff) 55%, transparent);
+}
+
+.sidebar-group.is-workspace .sidebar-item.active:has(.side-badge)::after {
+  display: none;
+}
+
+.sidebar.collapsed .side-badge {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-group.is-workspace {
+  padding: 4px 6px 8px;
+}
+
+/* ── Child stagger entrance ── */
+@keyframes ws-sub-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.sidebar-group.is-workspace .submenu.open .sub-item {
+  animation: ws-sub-in 0.34s var(--ease) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-group.is-workspace .submenu,
+  .sidebar-group.is-workspace .submenu.open {
+    transition: none;
   }
 
-  .hamburger {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    margin-right: 8px;
-    color: var(--text-dark);
+  .sidebar-group.is-workspace .submenu.open .sub-item {
+    animation: none;
   }
 }

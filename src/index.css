@@ -1,17 +1,44 @@
 :root {
+  /* ── Brand ── */
   --primary-blue: #0A4DB8;
   --secondary-blue: #003D99;
-
   --primary-green: #7AC943;
   --secondary-green: #5FAF2F;
-
   --light-bg: #F5FAF3;
   --white: #ffffff;
-
   --text-dark: #1b2b4b;
   --text-light: #6c7a89;
-
   --border-color: #dce8d8;
+
+  /* ── Dark glass shell ── */
+  --shell-navy-950: #04091a;
+  --shell-navy-900: #061026;
+  --shell-navy-800: #081735;
+  --shell-header-bg: rgba(4, 9, 26, 0.78);
+  --shell-sidebar-bg: linear-gradient(180deg, #071230 0%, #04091a 100%);
+  --shell-panel: #0b1430;
+  --shell-border: rgba(255, 255, 255, 0.08);
+  --shell-border-hi: rgba(255, 255, 255, 0.16);
+  --shell-surface: rgba(255, 255, 255, 0.05);
+  --shell-hover: rgba(255, 255, 255, 0.09);
+  --shell-text: rgba(255, 255, 255, 0.62);
+  --shell-text-dim: rgba(255, 255, 255, 0.40);
+  --shell-text-hi: #ffffff;
+  --shell-active-bg: linear-gradient(90deg, rgba(10, 77, 184, 0.60) 0%, rgba(10, 77, 184, 0.14) 100%);
+
+  /* ── Accents on dark ── */
+  --accent-blue: #4d8dff;
+  --accent-blue-soft: rgba(77, 141, 255, 0.35);
+  --accent-green: #7AC943;
+  --accent-danger: #f43f5e;
+
+  /* ── Metrics ── */
+  --header-h: 68px;
+  --sidebar-w: 264px;
+  --sidebar-w-mini: 76px;
+  --shell-radius: 12px;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --font-ui: 'DM Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 body {
@@ -22,6 +49,16 @@ body {
   color: var(--text-dark);
   min-height: 100vh;
   width: 100%;
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 /* ── Brand Primary Button (Blue) ── */

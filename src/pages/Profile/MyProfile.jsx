@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const MyProfile = () => {
-    const [user, setUser] = useState(null);
-    const isMobile = window.innerWidth <= 768;
-
-    useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
+    const [user] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem("user");
+            return storedUser ? JSON.parse(storedUser) : null;
+        } catch {
+            return null;
         }
-    }, []);
+    });
+    const isMobile = window.innerWidth <= 768;
 
     if (!user) {
         return (

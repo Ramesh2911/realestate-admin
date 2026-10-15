@@ -1,432 +1,766 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import DataTable from 'react-data-table-component';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import {
-    FaBuilding, FaSearch, FaTrash,
-    FaMapMarkerAlt, FaTag, FaUserTie, FaEye,
-    FaTimes, FaCheck, FaSpinner
-} from 'react-icons/fa';
+  FaBuilding,
+  FaCheckCircle,
+  FaClock,
+  FaRupeeSign,
+  FaMapMarkerAlt,
+  FaEye,
+  FaCheck,
+  FaTimes,
+  FaTrash,
+  FaSyncAlt,
+  FaDownload,
+  FaPlus,
+} from "react-icons/fa";
+import {
+  getPropertyApi,
+  approvePropertyApi,
+  rejectPropertyApi,
+  deletePropertyApi,
+} from "../../services/auth.api";
+import {
+  ListHero,
+  StatGrid,
+  Toolbar,
+  ListTable,
+  Pager,
+  Modal,
+  Confirm,
+  StatusPill,
+  VerifyChips,
+} from "../../components/ListUI";
+import {
+  useDebounced,
+  fmtNum,
+  formatCr,
+  downloadCsv,
+} from "../../utils/list";
 
-import { getPropertyApi, approvePropertyApi, rejectPropertyApi } from '../../services/auth.api';
+const EMPTY = {
+  title: "No properties found",
+  sub: "Try a different title, city or property ID.",
+};
 
-const C = {
-    primaryBlue: '#0A4DB8',
-    primaryGreen: '#7AC943',
-    textDark: '#1b2b4b',
-    textLight: '#6c7a89',
-    border: '#dce8d8',
-    lightBg: '#F5FAF3',
-    white: '#ffffff',
-    success: '#16a34a',
-    warning: '#b45309',
-    danger: '#dc2626'
+const statusOf = (r) => r.property_status || "Pending";
+
+const statusGroup = (s) => {
+  if (s === "Approved" || s === "Available") return "Approved";
+  if (s === "Rejected") return "Rejected";
+  return "Pending";
+};
+
+const statusTone = (s) => {
+  const g = statusGroup(s);
+  if (g === "Approved") return "green";
+  if (g === "Rejected") return "red";
+  return "amber";
 };
 
 const AllProperties = () => {
-    const navigate = useNavigate();
-    const [properties, setProperties] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [filterText, setFilterText] = useState('');
+  const navigate = useNavigate();
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("all");
+  const [city, setCity] = useState("all");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [view, setView] = useState(null);
+  const [delTarget, setDelTarget] = useState(null);
+  const [delBusy, setDelBusy] = useState(false);
+  const dq = useDebounced(q, 300);
 
-    useEffect(() => {
-        fetchPropertiesData();
-    }, []);
+  const roleId = useMemo(
+    () =>
+      Number(
+        JSON.parse(localStorage.getItem("user") || "{}").role_id ?? NaN
+      ),
+    []
+  );
 
-    // 1. Fetch properties from backend API
-    const fetchPropertiesData = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await getPropertyApi();
-            // Handle response payload formatted as: { success: true, message: "...", data: [...] }
-            const data = response?.data?.data || response?.data || response || [];
-            setProperties(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error("Failed to load property inventory:", err);
-            const msg = err?.message || "Failed to load properties data";
-            setError(msg);
-            toast.error(msg);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const loadData = useCallback(async () => {
+    setError(null);
+    try {
+      const response = await getPropertyApi();
+      const data = response?.data?.data || response?.data || response || [];
+      const fresh = Array.isArray(data) ? data : [];
+      setProperties(fresh);
+      setView((prev) =>
+        prev ? fresh.find((x) => x.id === prev.id) || prev : null
+      );
+    } catch (err) {
+      setError(err?.message || "Unable to load properties. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    // 2. Execute Approve/Reject API call and re-fetch real-time DB state
-    const executeStatusUpdate = async (id, type, comment) => {
-        const toastId = toast.loading(`${type === 'approve' ? 'Approving' : 'Rejecting'} property status...`);
-        try {
-            if (type === 'approve') {
-                await approvePropertyApi(id, { comments: comment, comment: comment });
-            } else {
-                await rejectPropertyApi(id, { comments: comment, comment: comment });
-            }
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-            // Trigger getPropertyApi to sync with updated MySQL verification state
-            await fetchPropertiesData();
+  const handleRefresh = () => {
+    setLoading(true);
+    loadData();
+  };
 
-            toast.update(toastId, {
-                render: `Property verification status updated successfully!`,
-                type: "success",
-                isLoading: false,
-                autoClose: 3000
-            });
-        } catch (err) {
-            console.error(`Failed to ${type} property:`, err);
-            toast.update(toastId, {
-                render: err?.response?.data?.message || `Failed to ${type} property.`,
-                type: "error",
-                isLoading: false,
-                autoClose: 4000
-            });
-        }
-    };
+  const onSearch = (v) => {
+    setQ(v);
+    setPage(1);
+  };
 
-    // Prompt Toast for Approval
-    const handleApprove = (id) => {
-        let commentText = "Verified and Approved";
+  const onStatus = (k) => {
+    setStatus(k);
+    setPage(1);
+  };
 
-        toast(
-            ({ closeToast }) => (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <strong style={{ fontSize: '13px', color: C.textDark }}>Approve Property #{id}</strong>
-                    <input
-                        type="text"
-                        defaultValue={commentText}
-                        onChange={(e) => { commentText = e.target.value; }}
-                        placeholder="Approval comment..."
-                        style={{ padding: '6px', borderRadius: '4px', border: `1px solid ${C.border}`, fontSize: '12px' }}
-                    />
-                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
-                        <button
-                            onClick={closeToast}
-                            style={{ padding: '4px 8px', background: C.lightBg, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={() => {
-                                closeToast();
-                                executeStatusUpdate(id, 'approve', commentText);
-                            }}
-                            style={{ padding: '4px 10px', background: C.success, color: C.white, border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                        >
-                            Approve
-                        </button>
-                    </div>
-                </div>
-            ),
-            { autoClose: false, closeOnClick: false }
-        );
-    };
+  const onCity = (v) => {
+    setCity(v);
+    setPage(1);
+  };
 
-    // Prompt Toast for Rejection
-    const handleReject = (id) => {
-        let commentText = "Verification failed";
+  const filtered = useMemo(() => {
+    const s = dq.trim().toLowerCase();
+    return properties.filter((p) => {
+      if (status !== "all" && statusGroup(statusOf(p)) !== status) return false;
+      if (city !== "all" && (p.city || "") !== city) return false;
+      if (!s) return true;
+      return [
+        p.property_title || p.title,
+        p.city,
+        p.state,
+        p.address,
+        p.property_type,
+        `prop-${p.id}`,
+        String(p.id),
+      ]
+        .filter(Boolean)
+        .some((f) => String(f).toLowerCase().includes(s));
+    });
+  }, [properties, dq, status, city]);
 
-        toast(
-            ({ closeToast }) => (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <strong style={{ fontSize: '13px', color: C.danger }}>Reject Property #{id}</strong>
-                    <input
-                        type="text"
-                        defaultValue={commentText}
-                        onChange={(e) => { commentText = e.target.value; }}
-                        placeholder="Rejection reason..."
-                        style={{ padding: '6px', borderRadius: '4px', border: `1px solid ${C.border}`, fontSize: '12px' }}
-                    />
-                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
-                        <button
-                            onClick={closeToast}
-                            style={{ padding: '4px 8px', background: C.lightBg, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={() => {
-                                closeToast();
-                                executeStatusUpdate(id, 'reject', commentText);
-                            }}
-                            style={{ padding: '4px 10px', background: C.danger, color: C.white, border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                        >
-                            Reject
-                        </button>
-                    </div>
-                </div>
-            ),
-            { autoClose: false, closeOnClick: false }
-        );
-    };
+  const cities = useMemo(
+    () =>
+      Array.from(
+        new Set(properties.map((p) => p.city).filter(Boolean))
+      ).sort((a, b) => a.localeCompare(b)),
+    [properties]
+  );
 
-    // Prompt Toast for Deletion
-    const handleDelete = (id) => {
-        toast(
-            ({ closeToast }) => (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <span style={{ fontSize: '13px', color: C.textDark }}>Purge property record <strong>#{id}</strong>?</span>
-                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                        <button onClick={closeToast} style={{ padding: '4px 8px', background: C.lightBg, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Cancel</button>
-                        <button
-                            onClick={() => {
-                                closeToast();
-                                setProperties(prev => prev.filter(p => p.id !== id));
-                                toast.success("Property record removed.");
-                            }}
-                            style={{ padding: '4px 10px', background: C.danger, color: C.white, border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                        >
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            ),
-            { autoClose: false, closeOnClick: false }
-        );
-    };
-
-    const customStyles = {
-        header: { style: { minHeight: '56px' } },
-        headRow: { style: { backgroundColor: C.lightBg, borderTopStyle: 'solid', borderTopWidth: '1px', borderTopColor: C.border, borderBottomWidth: '2px', borderBottomColor: C.border } },
-        headCells: { style: { color: C.textDark, fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' } },
-        rows: { style: { minHeight: '72px', '&:not(:last-child)': { borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: C.border } } },
-        cells: { style: { fontSize: '14px', color: C.textDark } },
-    };
-
-    const filteredItems = useMemo(() => {
-        return properties.filter(item => {
-            const title = item.property_title || item.title || '';
-            const city = item.city || '';
-            const address = item.address || '';
-            const idStr = String(item.id || '');
-            const query = filterText.toLowerCase();
-
-            return title.toLowerCase().includes(query) ||
-                city.toLowerCase().includes(query) ||
-                address.toLowerCase().includes(query) ||
-                idStr.toLowerCase().includes(query);
-        });
-    }, [properties, filterText]);
-
-    const renderAdminBadge = (roleLabel, status) => {
-        const currentStatus = status || 'Pending';
-        const isApproved = currentStatus === 'Approved';
-        const isPending = currentStatus === 'Pending';
-
-        const color = isApproved ? C.success : isPending ? C.warning : C.danger;
-        const bgColor = isApproved ? 'rgba(22,163,74,0.1)' : isPending ? 'rgba(245,158,11,0.1)' : 'rgba(220,38,38,0.1)';
-
-        return (
-            <span style={{
-                fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px',
-                backgroundColor: bgColor, color: color, whiteSpace: 'nowrap', display: 'inline-block'
-            }}>
-                {roleLabel}: <strong style={{ fontWeight: '800' }}>{currentStatus}</strong>
-            </span>
-        );
-    };
-
-    const columns = [
-        {
-            name: 'Property ID', selector: row => row.id, sortable: true,
-            cell: row => <span style={{ fontWeight: '700', color: C.primaryBlue }}>#PROP-{row.id}</span>, width: '120px'
-        },
-        {
-            name: 'Listing Details', selector: row => row.property_title || row.title, sortable: true,
-            cell: row => {
-                const title = row.property_title || row.title || 'Untitled Property';
-                const location = row.city ? `${row.city}, ${row.state || ''}` : row.address || 'Location N/A';
-                return (
-                    <div style={{ padding: '6px 0' }}>
-                        <div style={{ fontWeight: '700', color: C.textDark, marginBottom: '2px' }}>{title}</div>
-                        <div style={{ fontSize: '12px', color: C.textLight, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <FaMapMarkerAlt size={10} /> {location}
-                        </div>
-                    </div>
-                );
-            }, width: '220px'
-        },
-        {
-            name: 'Valuation', selector: row => row.price, sortable: true,
-            cell: row => {
-                const amount = parseFloat(row.price || 0);
-                return <span style={{ fontWeight: '700' }}>₹{amount.toLocaleString('en-IN')}</span>;
-            }, width: '130px'
-        },
-        {
-            name: 'Global Status', selector: row => row.property_status, sortable: true,
-            cell: row => {
-                const status = row.property_status || 'Pending';
-                const isApproved = status === 'Approved' || status === 'Available';
-                const isPending = status === 'Pending';
-
-                return (
-                    <span style={{
-                        padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
-                        backgroundColor: isApproved ? 'rgba(22,163,74,0.1)' : isPending ? 'rgba(245,158,11,0.1)' : 'rgba(220,38,38,0.2)',
-                        color: isApproved ? C.success : isPending ? C.warning : C.danger,
-                        border: `1px solid ${isApproved ? 'rgba(22,163,74,0.2)' : isPending ? 'rgba(245,158,11,0.2)' : 'rgba(220,38,38,0.2)'}`,
-                        whiteSpace: 'nowrap'
-                    }}>{status}</span>
-                );
-            }, width: '130px'
-        },
-        {
-            name: 'Verifications Hierarchy',
-            cell: row => {
-                // Directly reads flattened fields from SQL LEFT JOIN payload
-                const adminA = row.admin_a_status || 'Pending';
-                const adminB = row.admin_b_status || 'Pending';
-                const superAdmin = row.super_admin_status || 'Pending';
-
-                return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '6px 0', width: '100%' }}>
-                        <div>{renderAdminBadge('Super Admin', superAdmin)}</div>
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap' }}>
-                            {renderAdminBadge('Admin A', adminA)}
-                            {renderAdminBadge('Admin B', adminB)}
-                        </div>
-                    </div>
-                );
-            }, width: '270px'
-        },
-        {
-            name: 'Actions',
-            cell: row => {
-                // Retrieve current user info from localStorage
-                const user = JSON.parse(localStorage.getItem('user') || '{}');
-                const roleId = Number(user.role_id);
-
-                const adminA = row.admin_a_status || 'Pending';
-                const adminB = row.admin_b_status || 'Pending';
-                const superAdmin = row.super_admin_status || 'Pending';
-
-                // Check if the currently logged-in user has already submitted their review
-                let isAlreadyReviewed = false;
-
-                if (roleId === 2) {
-                    // Admin A already reviewed
-                    isAlreadyReviewed = adminA !== 'Pending';
-                } else if (roleId === 3) {
-                    // Admin B already reviewed
-                    isAlreadyReviewed = adminB !== 'Pending';
-                } else if (roleId === 1) {
-                    // Super Admin only acts on conflicts or if super admin decision isn't finalized
-                    const isConsensusReached = (adminA === 'Approved' && adminB === 'Approved') ||
-                        (adminA === 'Rejected' && adminB === 'Rejected');
-                    isAlreadyReviewed = isConsensusReached || superAdmin !== 'Pending';
-                }
-
-                return (
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {/* View Details Button - Always visible */}
-                        <button
-                            onClick={() => navigate(`/properties/details/${row.id}`)}
-                            style={{ padding: '6px', background: 'none', border: 'none', color: C.primaryBlue, cursor: 'pointer' }}
-                            title="View Details"
-                        >
-                            <FaEye size={15} />
-                        </button>
-
-                        {/* Show Approve/Reject buttons ONLY IF the logged-in user hasn't reviewed yet */}
-                        {!isAlreadyReviewed ? (
-                            <>
-                                <button
-                                    onClick={() => handleApprove(row.id)}
-                                    style={{ padding: '6px', background: 'none', border: 'none', color: C.success, cursor: 'pointer' }}
-                                    title="Approve Entry"
-                                >
-                                    <FaCheck size={15} />
-                                </button>
-                                <button
-                                    onClick={() => handleReject(row.id)}
-                                    style={{ padding: '6px', background: 'none', border: 'none', color: '#eab308', cursor: 'pointer' }}
-                                    title="Reject Entry"
-                                >
-                                    <FaTimes size={15} />
-                                </button>
-                            </>
-                        ) : (
-                            <span style={{ fontSize: '11px', color: C.textLight, fontStyle: 'italic', padding: '0 4px' }}>
-                                Reviewed
-                            </span>
-                        )}
-
-                        {/* Delete Button (Optional: Restrict to Super Admin or leave for all) */}
-                        <button
-                            onClick={() => handleDelete(row.id)}
-                            style={{ padding: '6px', background: 'none', border: 'none', color: C.danger, cursor: 'pointer' }}
-                            title="Purge Record"
-                        >
-                            <FaTrash size={15} />
-                        </button>
-                    </div>
-                );
-            },
-            ignoreRowClick: true, allowOverflow: true, button: true, width: '160px'
-        }
-    ];
-
-    const stats = useMemo(() => {
-        const activeCount = properties.filter(p => p.property_status === 'Approved' || p.property_status === 'Available').length;
-        const totalValuation = properties.reduce((acc, curr) => acc + parseFloat(curr.price || 0), 0);
-
-        return {
-            total: properties.length,
-            available: activeCount,
-            value: `₹${(totalValuation / 10000000).toFixed(2)} Cr`
-        };
-    }, [properties]);
-
-    return (
-        <div style={{ background: C.lightBg, minHeight: '100vh', padding: '32px', fontFamily: 'Inter, system-ui, sans-serif' }}>
-            <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
-                <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: '800', color: C.textDark, margin: 0 }}>All Live Properties</h1>
-                    <p style={{ color: C.textLight, margin: '4px 0 0', fontSize: '14px' }}>Master index of asset inventory records and multi-tier verification statuses.</p>
-                </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-                {[
-                    { label: 'Total Tracked Assets', val: stats.total, icon: <FaBuilding color={C.primaryBlue} /> },
-                    { label: 'Active Open Marketplace', val: stats.available, icon: <FaTag color={C.primaryGreen} /> },
-                    { label: 'Estimated Portfolio Cap', val: stats.value, icon: <FaUserTie color={C.primaryBlue} /> }
-                ].map((s, i) => (
-                    <div key={i} style={{ background: C.white, padding: '24px', borderRadius: '16px', border: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(10,77,184,0.03)' }}>
-                        <div>
-                            <div style={{ textTransform: 'uppercase', fontSize: '11px', color: C.textLight, fontWeight: '700', letterSpacing: '0.04em' }}>{s.label}</div>
-                            <div style={{ fontSize: '24px', fontWeight: '800', color: C.textDark, marginTop: '6px' }}>{s.val}</div>
-                        </div>
-                        <div style={{ width: '44px', height: '44px', background: C.lightBg, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>{s.icon}</div>
-                    </div>
-                ))}
-            </div>
-
-            <div style={{ background: C.white, borderRadius: '20px', border: `1px solid ${C.border}`, padding: '24px', boxShadow: '0 4px 20px rgba(10,77,184,0.04)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', background: C.lightBg, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '10px 16px', marginBottom: '20px', maxWidth: '400px' }}>
-                    <FaSearch color={C.textLight} style={{ marginRight: '10px' }} />
-                    <input type="text" placeholder="Search title, context or structural index..." value={filterText} onChange={e => setFilterText(e.target.value)} style={{ background: 'none', border: 'none', width: '100%', outline: 'none', fontSize: '14px', color: C.textDark }} />
-                </div>
-
-                {loading ? (
-                    <div style={{ padding: '60px', textAlign: 'center', color: C.textLight }}>
-                        <FaSpinner className="animate-spin" size={28} style={{ marginBottom: '12px', color: C.primaryBlue }} />
-                        <p style={{ margin: 0, fontWeight: '600' }}>Loading properties directory...</p>
-                    </div>
-                ) : error ? (
-                    <div style={{ padding: '32px', textAlign: 'center', color: C.danger }}>
-                        <p style={{ margin: '0 0 12px', fontWeight: '700' }}>{error}</p>
-                        <button onClick={fetchPropertiesData} style={{ padding: '8px 16px', background: C.primaryBlue, color: C.white, border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>Retry</button>
-                    </div>
-                ) : (
-                    <DataTable columns={columns} data={filteredItems} pagination customStyles={customStyles} responsive highlightOnHover defaultSortFieldId={1} />
-                )}
-            </div>
-        </div>
+  const stats = useMemo(() => {
+    const approved = properties.filter(
+      (p) => statusGroup(statusOf(p)) === "Approved"
+    ).length;
+    const pending = properties.filter(
+      (p) => statusGroup(statusOf(p)) === "Pending"
+    ).length;
+    const value = properties.reduce(
+      (acc, p) => acc + (Number(String(p.price ?? "").replace(/[^0-9.]/g, "")) || 0),
+      0
     );
+    const pct = properties.length
+      ? Math.round((approved / properties.length) * 100)
+      : 0;
+    return [
+      { label: "Tracked Assets", value: fmtNum(properties.length), icon: FaBuilding, tone: "blue" },
+      { label: "Approved & Live", value: fmtNum(approved), sub: `${pct}% of portfolio`, icon: FaCheckCircle, tone: "green" },
+      { label: "Pending Review", value: fmtNum(pending), sub: "awaiting verification", icon: FaClock, tone: "amber" },
+      { label: "Portfolio Value", value: formatCr(value), sub: "sum of listed prices", icon: FaRupeeSign, tone: "slate" },
+    ];
+  }, [properties]);
+
+  const pills = useMemo(() => {
+    const approved = properties.filter(
+      (p) => statusGroup(statusOf(p)) === "Approved"
+    ).length;
+    const pending = properties.filter(
+      (p) => statusGroup(statusOf(p)) === "Pending"
+    ).length;
+    return [
+      { key: "all", label: "All", count: properties.length },
+      { key: "Approved", label: "Approved", count: approved },
+      { key: "Pending", label: "Pending", count: pending },
+      { key: "Rejected", label: "Rejected", count: properties.length - approved - pending },
+    ];
+  }, [properties]);
+
+  const isReviewed = useCallback(
+    (row) => {
+      const adminA = row.admin_a_status || "Pending";
+      const adminB = row.admin_b_status || "Pending";
+      const superAdmin = row.super_admin_status || "Pending";
+
+      if (roleId === 2) return adminA !== "Pending";
+      if (roleId === 3) return adminB !== "Pending";
+      if (roleId === 1) {
+        const consensus =
+          (adminA === "Approved" && adminB === "Approved") ||
+          (adminA === "Rejected" && adminB === "Rejected");
+        return consensus || superAdmin !== "Pending";
+      }
+      return false;
+    },
+    [roleId]
+  );
+
+  const executeStatusUpdate = async (id, type, comment) => {
+    const toastId = toast.loading(
+      `${type === "approve" ? "Approving" : "Rejecting"} property status…`
+    );
+    try {
+      if (type === "approve") {
+        await approvePropertyApi(id, { comments: comment, comment });
+      } else {
+        await rejectPropertyApi(id, { comments: comment, comment });
+      }
+      await loadData();
+      toast.update(toastId, {
+        render: "Property verification status updated successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
+    } catch (err) {
+      toast.update(toastId, {
+        render:
+          err?.response?.data?.message || `Failed to ${type} property.`,
+        type: "error",
+        isLoading: false,
+        autoClose: 4000,
+      });
+    }
+  };
+
+  const handleApprove = (id) => {
+    let commentText = "Verified and Approved";
+    toast(
+      ({ closeToast }) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <strong style={{ fontSize: "13px", color: "#1b2b4b" }}>
+            Approve Property #{id}
+          </strong>
+          <input
+            type="text"
+            defaultValue={commentText}
+            onChange={(e) => {
+              commentText = e.target.value;
+            }}
+            placeholder="Approval comment…"
+            style={{
+              padding: "6px 8px",
+              borderRadius: "6px",
+              border: "1px solid #dce8d8",
+              fontSize: "12px",
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              gap: "6px",
+              justifyContent: "flex-end",
+              marginTop: "4px",
+            }}
+          >
+            <button
+              onClick={closeToast}
+              style={{
+                padding: "5px 10px",
+                background: "#F5FAF3",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "12px",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                closeToast();
+                executeStatusUpdate(id, "approve", commentText);
+              }}
+              style={{
+                padding: "5px 12px",
+                background: "#16a34a",
+                color: "#fff",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "12px",
+              }}
+            >
+              Approve
+            </button>
+          </div>
+        </div>
+      ),
+      { autoClose: false, closeOnClick: false }
+    );
+  };
+
+  const handleReject = (id) => {
+    let commentText = "Verification failed";
+    toast(
+      ({ closeToast }) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <strong style={{ fontSize: "13px", color: "#dc2626" }}>
+            Reject Property #{id}
+          </strong>
+          <input
+            type="text"
+            defaultValue={commentText}
+            onChange={(e) => {
+              commentText = e.target.value;
+            }}
+            placeholder="Rejection reason…"
+            style={{
+              padding: "6px 8px",
+              borderRadius: "6px",
+              border: "1px solid #dce8d8",
+              fontSize: "12px",
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              gap: "6px",
+              justifyContent: "flex-end",
+              marginTop: "4px",
+            }}
+          >
+            <button
+              onClick={closeToast}
+              style={{
+                padding: "5px 10px",
+                background: "#F5FAF3",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "12px",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                closeToast();
+                executeStatusUpdate(id, "reject", commentText);
+              }}
+              style={{
+                padding: "5px 12px",
+                background: "#dc2626",
+                color: "#fff",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "12px",
+              }}
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+      ),
+      { autoClose: false, closeOnClick: false }
+    );
+  };
+
+  const confirmDelete = async () => {
+    if (!delTarget) return;
+    setDelBusy(true);
+    try {
+      await deletePropertyApi(delTarget.id);
+      setDelTarget(null);
+      toast.success("Property record deleted.");
+      await loadData();
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.message || "Failed to delete property."
+      );
+    } finally {
+      setDelBusy(false);
+    }
+  };
+
+  const columns = [
+    {
+      key: "id",
+      label: "Property ID",
+      sortable: true,
+      width: "115px",
+      cell: (r) => <span className="lp-id">#PROP-{r.id}</span>,
+    },
+    {
+      key: "property_title",
+      label: "Listing",
+      sortable: true,
+      sortValue: (r) => r.property_title || r.title || "",
+      cell: (r) => (
+        <div style={{ minWidth: 0 }}>
+          <div
+            className="lp-user-name"
+            title={r.property_title || r.title || "Untitled Property"}
+          >
+            {r.property_title || r.title || "Untitled Property"}
+          </div>
+          <div className="lp-cell-sub lp-nowrap">
+            <FaMapMarkerAlt size={9} style={{ marginRight: 4 }} />
+            {r.city
+              ? `${r.city}${r.state ? `, ${r.state}` : ""}`
+              : r.address || "Location N/A"}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "price",
+      label: "Valuation",
+      sortable: true,
+      sortValue: (r) => Number(String(r.price ?? "").replace(/[^0-9.]/g, "")) || 0,
+      align: "right",
+      cell: (r) => (
+        <span className="lp-money">
+          ₹{fmtNum(Number(String(r.price ?? "").replace(/[^0-9.]/g, "")) || 0)}
+        </span>
+      ),
+    },
+    {
+      key: "property_status",
+      label: "Global Status",
+      sortable: true,
+      sortValue: (r) => statusGroup(statusOf(r)),
+      cell: (r) => <StatusPill tone={statusTone(statusOf(r))}>{statusOf(r)}</StatusPill>,
+    },
+    {
+      key: "verify",
+      label: "Verifications",
+      width: "118px",
+      cell: (r) => (
+        <VerifyChips
+          superStatus={r.super_admin_status || "Pending"}
+          adminA={r.admin_a_status || "Pending"}
+          adminB={r.admin_b_status || "Pending"}
+        />
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      cell: (r) => (
+        <div className="lp-actions-cell">
+          <button
+            type="button"
+            className="lp-icon-btn tone-blue"
+            title="View details"
+            aria-label={`View property ${r.id}`}
+            onClick={() => setView(r)}
+          >
+            <FaEye />
+          </button>
+          {!isReviewed(r) ? (
+            <>
+              <button
+                type="button"
+                className="lp-icon-btn tone-green"
+                title="Approve entry"
+                aria-label={`Approve property ${r.id}`}
+                onClick={() => handleApprove(r.id)}
+              >
+                <FaCheck />
+              </button>
+              <button
+                type="button"
+                className="lp-icon-btn tone-red"
+                title="Reject entry"
+                aria-label={`Reject property ${r.id}`}
+                onClick={() => handleReject(r.id)}
+              >
+                <FaTimes />
+              </button>
+            </>
+          ) : (
+            <StatusPill tone="slate">Reviewed</StatusPill>
+          )}
+          <button
+            type="button"
+            className="lp-icon-btn tone-red"
+            title="Delete record"
+            aria-label={`Delete property ${r.id}`}
+            onClick={() => setDelTarget(r)}
+          >
+            <FaTrash />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const pages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const cur = Math.min(page, pages);
+  const slice = filtered.slice((cur - 1) * perPage, cur * perPage);
+
+  const exportCsv = () => {
+    downloadCsv(
+      `properties-${new Date().toISOString().slice(0, 10)}.csv`,
+      filtered,
+      [
+        { label: "Property ID", value: (r) => `PROP-${r.id}` },
+        { label: "Title", value: (r) => r.property_title || r.title || "" },
+        { label: "Type", value: (r) => r.property_type || "" },
+        { label: "City", value: (r) => r.city || "" },
+        { label: "Address", value: (r) => r.address || "" },
+        { label: "Price", value: (r) => r.price || 0 },
+        { label: "Status", value: (r) => statusOf(r) },
+        { label: "Admin A", value: (r) => r.admin_a_status || "Pending" },
+        { label: "Admin B", value: (r) => r.admin_b_status || "Pending" },
+        { label: "Super Admin", value: (r) => r.super_admin_status || "Pending" },
+      ]
+    );
+  };
+
+  const filtersActive = q !== "" || status !== "all" || city !== "all";
+
+  return (
+    <div className="lp-page">
+      <ListHero
+        eyebrow="Master Inventory"
+        sub="Every listed asset with multi-tier verification state, valuation and review controls."
+        actions={
+          <>
+            <button
+              type="button"
+              className="lp-btn lp-btn-ghost"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              <FaSyncAlt className={loading ? "lp-spin" : ""} size={13} />
+              Refresh
+            </button>
+            <button
+              type="button"
+              className="lp-btn lp-btn-ghost"
+              onClick={exportCsv}
+              disabled={loading || !!error}
+            >
+              <FaDownload size={13} />
+              Export CSV
+            </button>
+            <button
+              type="button"
+              className="lp-btn lp-btn-primary"
+              onClick={() => navigate("/add-property")}
+            >
+              <FaPlus size={12} />
+              Add Property
+            </button>
+          </>
+        }
+      >
+        All Live <span className="lp-accent">Properties</span>
+      </ListHero>
+
+      <StatGrid stats={stats} />
+
+      <Toolbar
+        search={q}
+        onSearch={onSearch}
+        placeholder="Search title, city, address or property ID…"
+        pills={pills}
+        activePill={status}
+        onPill={onStatus}
+        filters={
+          <select
+            className="lp-select"
+            value={city}
+            onChange={(e) => onCity(e.target.value)}
+            aria-label="Filter by city"
+          >
+            <option value="all">All cities</option>
+            {cities.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        }
+        activeCount={filtersActive ? "Filters active" : ""}
+        onClear={
+          filtersActive
+            ? () => {
+                setQ("");
+                setStatus("all");
+                setCity("all");
+                setPage(1);
+              }
+            : null
+        }
+      />
+
+      <div className="lp-panel">
+        <div className="lp-panel-head">
+          <div>
+            <div className="lp-panel-title">Properties</div>
+            <div className="lp-panel-sub">
+              {loading
+                ? "Loading…"
+                : `${fmtNum(filtered.length)} of ${fmtNum(properties.length)} listings`}
+            </div>
+          </div>
+        </div>
+
+        <ListTable
+          columns={columns}
+          rows={slice}
+          rowKey={(r) => r.id}
+          loading={loading}
+          error={error}
+          onRetry={handleRefresh}
+          empty={EMPTY}
+          initialSort={{ key: "id", dir: "desc" }}
+        />
+
+        {!loading && !error && filtered.length > 0 && (
+          <Pager
+            total={filtered.length}
+            page={cur}
+            onPage={setPage}
+            perPage={perPage}
+            onPerPage={(n) => {
+              setPerPage(n);
+              setPage(1);
+            }}
+          />
+        )}
+      </div>
+
+      <Modal
+        open={!!view}
+        onClose={() => setView(null)}
+        size="lg"
+        title="Property Details"
+        sub={view ? `#PROP-${view.id} · listed inventory record` : ""}
+      >
+        {view && (
+          <>
+            <div className="lp-detail-head">
+              <div className="lp-detail-title">
+                {view.property_title || view.title || "Untitled Property"}
+              </div>
+              <div className="lp-detail-meta">
+                <span className="where">
+                  <FaMapMarkerAlt size={11} />
+                  {view.address
+                    ? view.address
+                    : ""}
+                  {view.city ? `${view.address ? " · " : ""}${view.city}` : ""}
+                  {view.state ? `, ${view.state}` : ""}
+                </span>
+                <StatusPill tone={statusTone(statusOf(view))}>
+                  {statusOf(view)}
+                </StatusPill>
+                <VerifyChips
+                  superStatus={view.super_admin_status || "Pending"}
+                  adminA={view.admin_a_status || "Pending"}
+                  adminB={view.admin_b_status || "Pending"}
+                />
+              </div>
+              <div className="lp-detail-price">
+                ₹{fmtNum(
+                  Number(String(view.price ?? "").replace(/[^0-9.]/g, "")) || 0
+                )}
+              </div>
+            </div>
+
+            <div className="lp-profile-grid" style={{ marginTop: 14 }}>
+              <div className="lp-info-card">
+                <div className="k">Property Type</div>
+                <div className="v">{view.property_type || "—"}</div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Purpose</div>
+                <div className="v">{view.property_for || "—"}</div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Configuration</div>
+                <div className="v">
+                  {view.bedroom ? `${view.bedroom} bed` : ""}
+                  {view.bedroom && view.bathroom ? " · " : ""}
+                  {view.bathroom ? `${view.bathroom} bath` : ""}
+                  {!view.bedroom && !view.bathroom ? "—" : ""}
+                </div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Area</div>
+                <div className="v">
+                  {view.area
+                    ? `${fmtNum(view.area)} ${view.area_unit || "sq ft"}`
+                    : "—"}
+                </div>
+              </div>
+            </div>
+
+            {view.description && (
+              <div className="lp-desc">
+                <div className="k">Description</div>
+                <p>{view.description}</p>
+              </div>
+            )}
+
+            <div className="lp-verify-rows">
+              <div className="lp-verify-row">
+                <span className="lp-verify-role">Super Admin</span>
+                <StatusPill tone={statusTone(view.super_admin_status || "Pending")}>
+                  {view.super_admin_status || "Pending"}
+                </StatusPill>
+                <span className="lp-verify-note">
+                  {view.super_admin_comment || "No comment recorded."}
+                </span>
+              </div>
+              <div className="lp-verify-row">
+                <span className="lp-verify-role">Admin A</span>
+                <StatusPill tone={statusTone(view.admin_a_status || "Pending")}>
+                  {view.admin_a_status || "Pending"}
+                </StatusPill>
+                <span className="lp-verify-note">
+                  {view.admin_a_comment || "No comment recorded."}
+                </span>
+              </div>
+              <div className="lp-verify-row">
+                <span className="lp-verify-role">Admin B</span>
+                <StatusPill tone={statusTone(view.admin_b_status || "Pending")}>
+                  {view.admin_b_status || "Pending"}
+                </StatusPill>
+                <span className="lp-verify-note">
+                  {view.admin_b_comment || "No comment recorded."}
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+      </Modal>
+
+      <Confirm
+        open={!!delTarget}
+        title="Delete this property?"
+        message={
+          delTarget
+            ? `#${delTarget.id} — “${delTarget.property_title || delTarget.title || "Untitled Property"}” will be permanently removed from the inventory. This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        danger
+        busy={delBusy}
+        onConfirm={confirmDelete}
+        onCancel={() => setDelTarget(null)}
+      />
+    </div>
+  );
 };
 
 export default AllProperties;

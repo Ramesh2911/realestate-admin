@@ -2,6 +2,8 @@ export const AUTH = {
   LOGIN: "/auth/login",
   LOGOUT: "/auth/logout",
   PROFILE: "/auth/profile",
+  UPDATE_PROFILE: "/auth/update-profile",
+  CHANGE_PASSWORD: "/auth/change-password",
 };
 
 export const USER = {
@@ -17,6 +19,7 @@ export const PROPERTY = {
   REJECT: (id) => `/properties/admin/reject/${id}`,
   STATUS: (id) => `/properties/admin/status/${id}`,
   FEATURED: (id) => `/properties/admin/featured/${id}`,
+  DELETE: (id) => `/properties/delete/${id}`,
 };
 
 export const DASHBOARD = {
@@ -42,4 +45,8 @@ export const NOTIFICATIONS = {
 export const SEO = {
   PAGES: "/seo/pages",
   PAGE_BY_ID: (id) => `/seo/pages/${id}`,
+};
+
+export const SETTINGS = {
+  BASE: "/settings",
 };

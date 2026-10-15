@@ -1,294 +1,548 @@
-import React, { useState, useEffect } from 'react';
-import DataTable from 'react-data-table-component';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { toast } from "react-toastify";
 import {
-  FaNewspaper, FaSearch, FaPlus, FaEdit, FaTrash, FaExternalLinkAlt, FaFileAlt
-} from 'react-icons/fa';
-import API from '../../services/api';
+  FaGlobe,
+  FaCheckCircle,
+  FaPen,
+  FaKey,
+  FaEye,
+  FaEdit,
+  FaTrash,
+  FaSyncAlt,
+  FaDownload,
+  FaPlus,
+} from "react-icons/fa";
+import {
+  getSeoPagesApi,
+  createSeoPageApi,
+  updateSeoPageApi,
+  deleteSeoPageApi,
+} from "../../services/auth.api";
+import {
+  ListHero,
+  StatGrid,
+  Toolbar,
+  ListTable,
+  Pager,
+  Modal,
+  Confirm,
+  StatusPill,
+} from "../../components/ListUI";
+import {
+  useDebounced,
+  fmtNum,
+  fmtWhen,
+  downloadCsv,
+} from "../../utils/list";
 
-const C = {
-  primaryBlue: '#0A4DB8',
-  primaryGreen: '#7AC943',
-  textDark: '#1b2b4b',
-  textLight: '#6c7a89',
-  border: '#dce8d8',
-  lightBg: '#F5FAF3',
-  white: '#ffffff',
-  danger: '#dc2626',
+const EMPTY = {
+  title: "No SEO pages found",
+  sub: "Try a different title, slug or keyword — or create a new SEO page.",
+};
+
+const slugify = (s) =>
+  String(s || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const statusOf = (r) => (Number(r.status) === 1 ? "Published" : "Draft");
+const statusTone = (r) => (Number(r.status) === 1 ? "green" : "amber");
+
+const emptyForm = {
+  title: "",
+  slug: "",
+  meta_title: "",
+  meta_description: "",
+  keywords: "",
+  content: "",
+  status: 1,
 };
 
 const SEOManagement = () => {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filterText, setFilterText] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    slug: '',
-    description: '',
-    keywords: '',
-    content: '',
-  });
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formId, setFormId] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [formBusy, setFormBusy] = useState(false);
+  const [delTarget, setDelTarget] = useState(null);
+  const [delBusy, setDelBusy] = useState(false);
+  const dq = useDebounced(q, 300);
 
-  const fetchPages = async () => {
-    setLoading(true);
+  const loadData = useCallback(async () => {
+    setError(null);
     try {
-      const res = await API.get('/seo/pages');
-      setPages(res.data?.pages || res.data || []);
-      setError(null);
+      const res = await getSeoPagesApi();
+      const data = res?.data?.data || [];
+      setPages(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError('Failed to fetch SEO pages.');
-      setPages([]);
+      setError(err?.message || "Unable to load SEO pages. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchPages();
   }, []);
 
-  const handleOpenModal = (item = null) => {
-    if (item) {
-      setEditItem(item);
-      setFormData({
-        title: item.title || '',
-        slug: item.slug || '',
-        description: item.description || '',
-        keywords: Array.isArray(item.keywords) ? item.keywords.join(', ') : (item.keywords || ''),
-        content: item.content || '',
-      });
-    } else {
-      setEditItem(null);
-      setFormData({ title: '', slug: '', description: '', keywords: '', content: '' });
-    }
-    setModalOpen(true);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleRefresh = () => {
+    setLoading(true);
+    loadData();
   };
 
-  const handleSave = async (e) => {
+  const onSearch = (v) => {
+    setQ(v);
+    setPage(1);
+  };
+
+  const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const openCreate = () => {
+    setFormId(null);
+    setForm({ ...emptyForm });
+    setFormOpen(true);
+  };
+
+  const openEdit = (r) => {
+    setFormId(r.id);
+    setForm({
+      title: r.title || "",
+      slug: r.slug || "",
+      meta_title: r.meta_title || "",
+      meta_description: r.meta_description || "",
+      keywords: r.keywords || "",
+      content: r.content || "",
+      status: Number(r.status) === 1 ? 1 : 0,
+    });
+    setFormOpen(true);
+  };
+
+  const saveForm = async (e) => {
     e.preventDefault();
+    setFormBusy(true);
+    const slug = form.slug.trim() || slugify(form.title);
+    if (!slug) {
+      setFormBusy(false);
+      toast.error("A title or slug is required.");
+      return;
+    }
+    const payload = {
+      title: form.title.trim(),
+      slug,
+      meta_title: form.meta_title || null,
+      meta_description: form.meta_description || null,
+      content: form.content || null,
+      keywords: form.keywords || null,
+      status: form.status,
+    };
     try {
-      const payload = {
-        ...formData,
-        keywords: formData.keywords.split(',').map(k => k.trim()).filter(Boolean),
-      };
-
-      if (editItem) {
-        await API.put(`/seo/pages/${editItem._id || editItem.id}`, payload);
+      if (formId) {
+        await updateSeoPageApi(formId, payload);
+        toast.success("SEO page updated.");
       } else {
-        await API.post('/seo/pages', payload);
+        await createSeoPageApi(payload);
+        toast.success("SEO page created.");
       }
-      setModalOpen(false);
-      fetchPages();
+      setFormOpen(false);
+      await loadData();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save SEO page.');
+      toast.error(err?.response?.data?.message || "Failed to save SEO page.");
+    } finally {
+      setFormBusy(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Delete this SEO page permanently?')) {
-      try {
-        await API.delete(`/seo/pages/${id}`);
-        fetchPages();
-      } catch (err) {
-        setError('Failed to delete SEO page.');
-      }
+  const confirmDelete = async () => {
+    if (!delTarget) return;
+    setDelBusy(true);
+    try {
+      await deleteSeoPageApi(delTarget.id);
+      setDelTarget(null);
+      toast.success("SEO page deleted.");
+      await loadData();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to delete SEO page.");
+    } finally {
+      setDelBusy(false);
     }
   };
 
-  const customStyles = {
-    headRow: { style: { backgroundColor: C.lightBg, borderTop: '1px solid ' + C.border, borderBottom: '2px solid ' + C.border } },
-    headCells: { style: { color: C.textDark, fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' } },
-    rows: { style: { minHeight: '56px' } },
-    cells: { style: { fontSize: '14px', color: C.textDark } },
-  };
+  const filtered = useMemo(() => {
+    const s = dq.trim().toLowerCase();
+    if (!s) return pages;
+    return pages.filter((r) =>
+      [r.title, r.slug, r.meta_title, r.meta_description, r.keywords, `seo-${r.id}`, String(r.id)]
+        .filter(Boolean)
+        .some((f) => String(f).toLowerCase().includes(s))
+    );
+  }, [pages, dq]);
+
+  const stats = useMemo(() => {
+    const published = pages.filter((r) => Number(r.status) === 1).length;
+    const withMeta = pages.filter((r) => (r.meta_description || "").trim()).length;
+    const coverage = pages.length ? Math.round((withMeta / pages.length) * 100) : 0;
+    return [
+      { label: "SEO Pages", value: fmtNum(pages.length), icon: FaGlobe, tone: "blue" },
+      { label: "Published", value: fmtNum(published), sub: `${pages.length - published} drafts`, icon: FaCheckCircle, tone: "green" },
+      { label: "Meta Coverage", value: `${coverage}%`, sub: "pages with meta description", icon: FaPen, tone: "amber" },
+      { label: "Keyword Sets", value: fmtNum(pages.filter((r) => (r.keywords || "").trim()).length), sub: "pages with keywords", icon: FaKey, tone: "slate" },
+    ];
+  }, [pages]);
 
   const columns = [
     {
-      name: 'Title',
-      selector: row => row.title,
+      key: "id",
+      label: "Page ID",
       sortable: true,
-      cell: row => (
-        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700', color: C.textDark }}>
-          <FaFileAlt size={12} color={C.primaryBlue} />
-          {row.title}
-        </span>
-      ),
-      width: '220px',
+      width: "95px",
+      cell: (r) => <span className="lp-id">#SEO-{r.id}</span>,
     },
     {
-      name: 'Slug',
-      selector: row => row.slug,
+      key: "title",
+      label: "Page",
       sortable: true,
-      cell: row => (
-        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: C.primaryBlue, fontWeight: '600', fontSize: '13px' }}>
-          <FaExternalLinkAlt size={10} />
-          /{row.slug}
-        </span>
-      ),
-      width: '200px',
-    },
-    {
-      name: 'Description',
-      selector: row => row.description,
-      sortable: true,
-      cell: row => (
-        <span style={{ color: C.textLight, fontSize: '13px', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {row.description || '-'}
-        </span>
+      cell: (r) => (
+        <div style={{ minWidth: 0 }}>
+          <div className="lp-user-name" title={r.title}>
+            {r.title || "—"}
+          </div>
+          <div className="lp-cell-sub" title={r.meta_title || ""}>
+            {r.meta_title || "No meta title"}
+          </div>
+        </div>
       ),
     },
     {
-      name: 'Keywords',
-      selector: row => row.keywords,
+      key: "slug",
+      label: "Slug",
       sortable: true,
-      cell: row => {
-        const keywords = Array.isArray(row.keywords) ? row.keywords : (row.keywords || '').split(',');
+      width: "140px",
+      cell: (r) => <span className="lp-id">/{r.slug}</span>,
+    },
+    {
+      key: "meta_description",
+      label: "Meta Description",
+      cell: (r) =>
+        r.meta_description ? (
+          <span
+            className="lp-cell-sub"
+            title={r.meta_description}
+            style={{ display: "block", maxWidth: 230 }}
+          >
+            {r.meta_description}
+          </span>
+        ) : (
+          <span className="lp-muted">—</span>
+        ),
+    },
+    {
+      key: "keywords",
+      label: "Keywords",
+      width: "180px",
+      cell: (r) => {
+        const kws = String(r.keywords || "")
+          .split(",")
+          .map((k) => k.trim())
+          .filter(Boolean);
+        if (!kws.length) return <span className="lp-muted">—</span>;
         return (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-            {keywords.slice(0, 3).map((kw, i) => (
-              <span key={i} style={{
-                padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '700',
-                backgroundColor: 'rgba(10,77,184,0.08)', color: C.primaryBlue, border: '1px solid rgba(10,77,184,0.15)',
-              }}>
-                {kw.trim()}
+          <span className="lp-kws">
+            {kws.slice(0, 3).map((k) => (
+              <span className="lp-kw" key={k}>
+                {k}
               </span>
             ))}
-            {keywords.length > 3 && (
-              <span style={{ fontSize: '10px', color: C.textLight }}>+{keywords.length - 3}</span>
-            )}
-          </div>
+            {kws.length > 3 && <span className="lp-kw more">+{kws.length - 3}</span>}
+          </span>
         );
       },
-      width: '200px',
     },
     {
-      name: 'Date',
-      selector: row => row.createdAt,
+      key: "status",
+      label: "Status",
       sortable: true,
-      cell: row => (
-        <span style={{ color: C.textLight, fontSize: '13px' }}>
-          {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '-'}
-        </span>
-      ),
-      width: '120px',
+      sortValue: (r) => statusOf(r),
+      width: "115px",
+      cell: (r) => <StatusPill tone={statusTone(r)}>{statusOf(r)}</StatusPill>,
     },
     {
-      name: 'Actions',
-      cell: row => (
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={() => handleOpenModal(row)} style={{ padding: '6px', background: 'none', border: 'none', color: C.primaryBlue, cursor: 'pointer' }}>
-            <FaEdit size={14} />
+      key: "updated_at",
+      label: "Updated",
+      sortable: true,
+      sortValue: (r) => new Date(r.updated_at || r.created_at || 0).getTime() || 0,
+      width: "105px",
+      cell: (r) => (
+        <span className="lp-muted">{fmtWhen(r.updated_at || r.created_at)}</span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      cell: (r) => (
+        <div className="lp-actions-cell">
+          <button
+            type="button"
+            className="lp-icon-btn tone-blue"
+            title="Edit page"
+            aria-label={`Edit SEO page ${r.id}`}
+            onClick={() => openEdit(r)}
+          >
+            <FaEdit />
           </button>
-          <button onClick={() => handleDelete(row._id || row.id)} style={{ padding: '6px', background: 'none', border: 'none', color: C.danger, cursor: 'pointer' }}>
-            <FaTrash size={14} />
+          <button
+            type="button"
+            className="lp-icon-btn tone-red"
+            title="Delete page"
+            aria-label={`Delete SEO page ${r.id}`}
+            onClick={() => setDelTarget(r)}
+          >
+            <FaTrash />
           </button>
         </div>
       ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
-      width: '100px',
     },
   ];
 
-  const filteredItems = pages.filter(item => {
-    const search = filterText.toLowerCase();
-    return (
-      (item.title || '').toLowerCase().includes(search) ||
-      (item.slug || '').toLowerCase().includes(search) ||
-      (item.description || '').toLowerCase().includes(search)
+  const pagesCount = Math.max(1, Math.ceil(filtered.length / perPage));
+  const cur = Math.min(page, pagesCount);
+  const slice = filtered.slice((cur - 1) * perPage, cur * perPage);
+
+  const exportCsv = () => {
+    downloadCsv(
+      `seo-pages-${new Date().toISOString().slice(0, 10)}.csv`,
+      filtered,
+      [
+        { label: "Page ID", value: (r) => `SEO-${r.id}` },
+        { label: "Title", value: (r) => r.title || "" },
+        { label: "Slug", value: (r) => r.slug || "" },
+        { label: "Meta Title", value: (r) => r.meta_title || "" },
+        { label: "Meta Description", value: (r) => r.meta_description || "" },
+        { label: "Keywords", value: (r) => r.keywords || "" },
+        { label: "Status", value: (r) => statusOf(r) },
+        { label: "Created", value: (r) => r.created_at || "" },
+        { label: "Updated", value: (r) => r.updated_at || "" },
+      ]
     );
-  });
+  };
 
   return (
-    <div style={{ background: C.lightBg, minHeight: '100vh', padding: '32px', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div className="lp-page">
+      <ListHero
+        eyebrow="Search Visibility"
+        sub="Manage slugs, meta tags and keywords for every public-facing page."
+        actions={
+          <>
+            <button
+              type="button"
+              className="lp-btn lp-btn-ghost"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              <FaSyncAlt className={loading ? "lp-spin" : ""} size={13} />
+              Refresh
+            </button>
+            <button
+              type="button"
+              className="lp-btn lp-btn-ghost"
+              onClick={exportCsv}
+              disabled={loading || !!error}
+            >
+              <FaDownload size={13} />
+              Export CSV
+            </button>
+            <button
+              type="button"
+              className="lp-btn lp-btn-primary"
+              onClick={openCreate}
+            >
+              <FaPlus size={12} />
+              New SEO Page
+            </button>
+          </>
+        }
+      >
+        SEO <span className="lp-accent">Pages</span>
+      </ListHero>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '28px', fontWeight: '800', color: C.textDark, margin: 0 }}>SEO Management</h1>
-          <p style={{ color: C.textLight, margin: '4px 0 0', fontSize: '14px' }}>Manage meta titles, descriptions, keywords, and SEO page content.</p>
-        </div>
-        <button onClick={() => handleOpenModal()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: 'linear-gradient(135deg, ' + C.primaryBlue + ', #003D99)', color: C.white, border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 14px rgba(10,77,184,0.25)' }}>
-          <FaPlus /> Add SEO Page
-        </button>
-      </div>
+      <StatGrid stats={stats} />
 
-      <div style={{ background: C.white, borderRadius: '20px', border: '1px solid ' + C.border, padding: '24px', boxShadow: '0 4px 20px rgba(10,77,184,0.04)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', background: C.lightBg, border: '1px solid ' + C.border, borderRadius: '12px', padding: '10px 16px', marginBottom: '20px', maxWidth: '400px' }}>
-          <FaSearch color={C.textLight} style={{ marginRight: '10px' }} />
-          <input
-            type="text"
-            placeholder="Search by title, slug, description..."
-            value={filterText}
-            onChange={e => setFilterText(e.target.value)}
-            style={{ background: 'none', border: 'none', width: '100%', outline: 'none', fontSize: '14px', color: C.textDark }}
-          />
-        </div>
+      <Toolbar
+        search={q}
+        onSearch={onSearch}
+        placeholder="Search title, slug, meta or keyword…"
+      />
 
-        {error && (
-          <div style={{ padding: '12px 16px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: '10px', color: '#dc2626', fontSize: '14px', marginBottom: '16px', fontWeight: '600' }}>
-            {error}
+      <div className="lp-panel">
+        <div className="lp-panel-head">
+          <div>
+            <div className="lp-panel-title">Page Directory</div>
+            <div className="lp-panel-sub">
+              {loading
+                ? "Loading…"
+                : `${fmtNum(filtered.length)} of ${fmtNum(pages.length)} pages`}
+            </div>
           </div>
-        )}
+        </div>
 
-        <DataTable
+        <ListTable
           columns={columns}
-          data={filteredItems}
-          customStyles={customStyles}
-          pagination
-          responsive
-          highlightOnHover
-          progressPending={loading}
-          progressComponent={
-            <div style={{ padding: '40px', textAlign: 'center', color: C.textLight }}>
-              <FaNewspaper size={32} style={{ marginBottom: '12px', opacity: 0.4 }} />
-              <p style={{ fontSize: '14px' }}>Loading SEO pages...</p>
-            </div>
-          }
-          noDataComponent={
-            <div style={{ padding: '40px', textAlign: 'center', color: C.textLight }}>
-              <FaNewspaper size={32} style={{ marginBottom: '12px', opacity: 0.4 }} />
-              <p style={{ fontSize: '14px' }}>No SEO pages found. Create your first SEO page.</p>
-            </div>
-          }
+          rows={slice}
+          rowKey={(r) => r.id}
+          loading={loading}
+          error={error}
+          onRetry={handleRefresh}
+          empty={EMPTY}
+          initialSort={{ key: "updated_at", dir: "desc" }}
         />
+
+        {!loading && !error && filtered.length > 0 && (
+          <Pager
+            total={filtered.length}
+            page={cur}
+            onPage={setPage}
+            perPage={perPage}
+            onPerPage={(n) => {
+              setPerPage(n);
+              setPage(1);
+            }}
+          />
+        )}
       </div>
 
-      {modalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(27,43,75,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: C.white, width: '100%', maxWidth: '560px', borderRadius: '20px', padding: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '1px solid ' + C.border, maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3 style={{ margin: '0 0 24px', fontSize: '20px', fontWeight: '800', color: C.textDark }}>{editItem ? 'Update SEO Page' : 'Create SEO Page'}</h3>
-            <form onSubmit={handleSave} style={{ display: 'grid', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: C.textLight, textTransform: 'uppercase' }}>Page Title</label>
-                <input type="text" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. About Us" style={{ width: '100%', padding: '12px', border: '1px solid ' + C.border, borderRadius: '8px', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: C.textLight, textTransform: 'uppercase' }}>URL Slug</label>
-                <input type="text" required value={formData.slug} onChange={e => setFormData({ ...formData, slug: e.target.value })} placeholder="e.g. about-us" style={{ width: '100%', padding: '12px', border: '1px solid ' + C.border, borderRadius: '8px', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: C.textLight, textTransform: 'uppercase' }}>Meta Description</label>
-                <textarea rows={3} required value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="SEO meta description for search engines" style={{ width: '100%', padding: '12px', border: '1px solid ' + C.border, borderRadius: '8px', boxSizing: 'border-box', resize: 'vertical' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: C.textLight, textTransform: 'uppercase' }}>Keywords (comma-separated)</label>
-                <input type="text" value={formData.keywords} onChange={e => setFormData({ ...formData, keywords: e.target.value })} placeholder="e.g. real estate, property, buy" style={{ width: '100%', padding: '12px', border: '1px solid ' + C.border, borderRadius: '8px', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: C.textLight, textTransform: 'uppercase' }}>Page Content</label>
-                <textarea rows={6} value={formData.content} onChange={e => setFormData({ ...formData, content: e.target.value })} placeholder="Full page content body" style={{ width: '100%', padding: '12px', border: '1px solid ' + C.border, borderRadius: '8px', boxSizing: 'border-box', resize: 'vertical' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '14px' }}>
-                <button type="button" onClick={() => setModalOpen(false)} style={{ padding: '12px 20px', border: '1px solid ' + C.border, borderRadius: '8px', background: 'none', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
-                <button type="submit" style={{ padding: '12px 24px', border: 'none', borderRadius: '8px', background: C.primaryBlue, color: C.white, cursor: 'pointer', fontWeight: '700' }}>{editItem ? 'Update Page' : 'Create Page'}</button>
-              </div>
-            </form>
+      <Modal
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        size="lg"
+        title={formId ? "Edit SEO Page" : "New SEO Page"}
+        sub={
+          formId
+            ? `Page #SEO-${formId} · meta tags sync on save`
+            : "Define the slug, meta tags and keywords search engines will see."
+        }
+        footer={
+          <>
+            <button
+              type="button"
+              className="lp-btn lp-btn-ghost"
+              onClick={() => setFormOpen(false)}
+              disabled={formBusy}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="seo-form"
+              className="lp-btn lp-btn-primary"
+              disabled={formBusy}
+            >
+              {formBusy && <span className="lp-spin" style={{ display: "inline-flex" }} />}
+              {formId ? "Save changes" : "Create page"}
+            </button>
+          </>
+        }
+      >
+        <form id="seo-form" className="lp-form-grid" onSubmit={saveForm}>
+          <div className="lp-field">
+            <label htmlFor="seo-title">Page Title *</label>
+            <input
+              id="seo-title"
+              type="text"
+              required
+              value={form.title}
+              onChange={(e) => setF("title", e.target.value)}
+              onBlur={() => {
+                if (!formId && !form.slug.trim() && form.title.trim())
+                  setF("slug", slugify(form.title));
+              }}
+              placeholder="e.g. Privacy Policy"
+            />
           </div>
-        </div>
-      )}
+          <div className="lp-field">
+            <label htmlFor="seo-slug">URL Slug *</label>
+            <input
+              id="seo-slug"
+              type="text"
+              required
+              value={form.slug}
+              onChange={(e) => setF("slug", slugify(e.target.value))}
+              placeholder="auto-generated from title if empty"
+            />
+          </div>
+          <div className="lp-field full">
+            <label htmlFor="seo-metatitle">Meta Title</label>
+            <input
+              id="seo-metatitle"
+              type="text"
+              value={form.meta_title}
+              onChange={(e) => setF("meta_title", e.target.value)}
+              placeholder="SEO title shown in search results (≤ 60 chars ideal)"
+            />
+          </div>
+          <div className="lp-field full">
+            <label htmlFor="seo-metadesc">Meta Description</label>
+            <textarea
+              id="seo-metadesc"
+              value={form.meta_description}
+              onChange={(e) => setF("meta_description", e.target.value)}
+              placeholder="Short summary shown under the title in search results…"
+            />
+          </div>
+          <div className="lp-field full">
+            <label htmlFor="seo-keywords">Keywords</label>
+            <input
+              id="seo-keywords"
+              type="text"
+              value={form.keywords}
+              onChange={(e) => setF("keywords", e.target.value)}
+              placeholder="comma, separated, keywords"
+            />
+          </div>
+          <div className="lp-field full">
+            <label htmlFor="seo-content">Page Content</label>
+            <textarea
+              id="seo-content"
+              style={{ minHeight: 110 }}
+              value={form.content}
+              onChange={(e) => setF("content", e.target.value)}
+              placeholder="Body content for the page (HTML allowed)…"
+            />
+          </div>
+          <div className="lp-field">
+            <label htmlFor="seo-status">Status</label>
+            <select
+              id="seo-status"
+              value={form.status}
+              onChange={(e) => setF("status", Number(e.target.value))}
+            >
+              <option value={1}>Published</option>
+              <option value={0}>Draft</option>
+            </select>
+          </div>
+        </form>
+      </Modal>
+
+      <Confirm
+        open={!!delTarget}
+        title="Delete this SEO page?"
+        message={
+          delTarget
+            ? `“${delTarget.title}” (/${delTarget.slug}) will be permanently removed. Public routes using this slug will stop resolving.`
+            : ""
+        }
+        confirmLabel="Delete"
+        danger
+        busy={delBusy}
+        onConfirm={confirmDelete}
+        onCancel={() => setDelTarget(null)}
+      />
     </div>
   );
 };

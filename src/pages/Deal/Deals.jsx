@@ -11,7 +11,7 @@ const STATIC_DEALS = [
 ];
 
 const Deals = () => {
-    const [deals, setDeals] = useState(STATIC_DEALS);
+    const [deals] = useState(STATIC_DEALS);
     const [filterText, setFilterText] = useState('');
 
     const customStyles = {

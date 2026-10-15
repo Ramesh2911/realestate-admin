@@ -42,7 +42,7 @@ export const SUPER_ADMIN_MENU = [
     label: "User Management",
     icon: FaUsers,
     type: "dropdown",
-    iconColor: "#7AC943",
+    iconColor: "#4d8dff",
     children: [
       {
         key: "owners",
@@ -75,7 +75,7 @@ export const SUPER_ADMIN_MENU = [
     label: "Property",
     icon: FaHome,
     type: "dropdown",
-    iconColor: "#0A4DB8",
+    iconColor: "#7AC943",
     children: [
       {
         key: "properties",
@@ -90,7 +90,7 @@ export const SUPER_ADMIN_MENU = [
     label: "Leads",
     path: "/leads",
     icon: FaHandshake,
-    iconColor: "#7AC943",
+    iconColor: "#f59e0b",
   },
   {
     key: "seo",
@@ -129,6 +129,7 @@ export const ADMIN_A_MENU = [
     label: "User Management",
     icon: FaUsers,
     type: "dropdown",
+    iconColor: "#4d8dff",
     children: [
       {
         key: "owners",
@@ -168,7 +169,7 @@ export const ADMIN_A_MENU = [
     label: "Leads",
     path: "/leads",
     icon: FaHandshake,
-    iconColor: "#7AC943",
+    iconColor: "#f59e0b",
   },
   {
     key: "reports",
@@ -193,6 +194,7 @@ export const ADMIN_B_MENU = [
     label: "User Management",
     icon: FaUsers,
     type: "dropdown",
+    iconColor: "#4d8dff",
     children: [
       {
         key: "owners",
@@ -232,14 +234,14 @@ export const ADMIN_B_MENU = [
     label: "Leads",
     path: "/leads",
     icon: FaHandshake,
-    iconColor: "#7AC943",
+    iconColor: "#f59e0b",
   },
   {
     key: "site-visits",
     label: "Site Visits",
     path: "/site-visits",
     icon: FaMapMarkerAlt,
-    iconColor: "#0A4DB8",
+    iconColor: "#a78bfa",
   },
   {
     key: "reports",
@@ -249,3 +251,58 @@ export const ADMIN_B_MENU = [
     iconColor: "#0A4DB8",
   },
 ];
+
+/* ── Role → menu lookup ── */
+export const getMenuByRole = (roleName) => {
+  switch (roleName) {
+    case "Super Admin":
+      return SUPER_ADMIN_MENU;
+    case "Admin A":
+      return ADMIN_A_MENU;
+    case "Admin B":
+      return ADMIN_B_MENU;
+    default:
+      return [];
+  }
+};
+
+/* ── Section grouping for premium sidebar labels ── */
+const SECTIONS = [
+  { label: "Overview", keys: ["dashboard", "activity-logs"] },
+  { label: "Workspace", keys: ["users", "property", "leads", "site-visits"] },
+  { label: "Insights", keys: ["seo", "reports"] },
+  { label: "System", keys: ["settings", "roles"] },
+];
+
+export const groupMenu = (items) => {
+  const groups = [];
+  const used = new Set();
+
+  SECTIONS.forEach((section) => {
+    const sectionItems = items.filter((item) => section.keys.includes(item.key));
+    if (sectionItems.length) {
+      sectionItems.forEach((i) => used.add(i.key));
+      groups.push({ id: section.label.toLowerCase(), label: section.label, items: sectionItems });
+    }
+  });
+
+  const rest = items.filter((item) => !used.has(item.key));
+  if (rest.length) groups.push({ id: "more", label: "More", items: rest });
+
+  return groups;
+};
+
+/* ── Flat list of { label, path } for global search ── */
+export const flattenNavItems = (menu) => {
+  const flat = [];
+  menu.forEach((item) => {
+    if (item.type === "dropdown") {
+      item.children?.forEach((child) => {
+        if (child.path) flat.push({ label: child.label, path: child.path });
+      });
+    } else if (item.path) {
+      flat.push({ label: item.label, path: item.path });
+    }
+  });
+  return flat;
+};

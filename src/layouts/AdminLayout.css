@@ -2,56 +2,40 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-/* HEADER */
-.header {
-  height: 64px;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
+  overflow: hidden;
+  background: var(--light-bg);
 }
 
 /* BODY */
 .admin-body {
   flex: 1;
   display: flex;
-  overflow: hidden;
-}
-
-/* SIDEBAR */
-.sidebar {
-  width: 220px;
-  background: #0f172a;
-  color: #fff;
-  padding: 20px 0;
-}
-
-.sidebar a {
-  display: block;
-  padding: 12px 20px;
-  color: #cbd5e1;
-  text-decoration: none;
-}
-
-.sidebar a.active {
-  background: #1e293b;
-  color: #ffffff;
+  min-height: 0;
 }
 
 /* CONTENT */
 .admin-content {
   flex: 1;
-  background: #f1f5f9;
+  min-width: 0;
+  background: var(--light-bg);
   padding: 20px;
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.admin-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-content::-webkit-scrollbar-thumb {
+  background: #c8dbc4;
+  border-radius: 8px;
+}
+
+.admin-content::-webkit-scrollbar-thumb:hover {
+  background: #a8c4a3;
+}
+
+.admin-content::-webkit-scrollbar-track {
+  background: transparent;
 }
