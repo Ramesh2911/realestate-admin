@@ -8,6 +8,9 @@ import {
   NOTIFICATIONS,
   SEO,
   SETTINGS,
+  FOOTER,
+  CONTENT,
+  BLOG,
 } from "./endpoints";
 
 export const loginApi = (payload) => API.post(AUTH.LOGIN, payload);
@@ -55,3 +58,21 @@ export const deleteSeoPageApi = (id) => API.delete(SEO.PAGE_BY_ID(id));
 
 export const getSettingsApi = () => API.get(SETTINGS.BASE);
 export const updateSettingsApi = (payload) => API.put(SETTINGS.BASE, payload);
+
+// Website footer (contact + useful links)
+export const getFooterContactApi = () => API.get(FOOTER.CONTACT);
+export const updateFooterContactApi = (payload) => API.put(FOOTER.CONTACT, payload);
+export const getFooterLinksApi = () => API.get(FOOTER.LINKS);
+export const createFooterLinkApi = (payload) => API.post(FOOTER.LINKS, payload);
+export const updateFooterLinkApi = (id, payload) => API.put(FOOTER.LINK_BY_ID(id), payload);
+export const deleteFooterLinkApi = (id) => API.delete(FOOTER.LINK_BY_ID(id));
+
+// Page content (about_*, contact_*)
+export const getContentApi = () => API.get(CONTENT.BASE);
+export const updateContentApi = (payload) => API.put(CONTENT.BASE, payload);
+
+// Blog posts
+export const getBlogPostsApi = () => API.get(BLOG.LIST);
+export const createBlogPostApi = (payload) => API.post(BLOG.BASE, payload);
+export const updateBlogPostApi = (id, payload) => API.put(BLOG.BY_ID(id), payload);
+export const deleteBlogPostApi = (id) => API.delete(BLOG.BY_ID(id));

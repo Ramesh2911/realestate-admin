@@ -50,3 +50,19 @@ export const SEO = {
 export const SETTINGS = {
   BASE: "/settings",
 };
+
+export const FOOTER = {
+  CONTACT: "/footer/contact",
+  LINKS: "/footer/links",
+  LINK_BY_ID: (id) => `/footer/links/${id}`,
+};
+
+export const CONTENT = {
+  BASE: "/content",
+};
+
+export const BLOG = {
+  LIST: "/blog/all",
+  BASE: "/blog",
+  BY_ID: (id) => `/blog/${id}`,
+};

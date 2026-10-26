@@ -28,6 +28,9 @@ import AddProperty from "./pages/Properties/AddProperty";
 import Buyers from "./pages/Buyer/Buyers";
 import ActivityLogs from "./pages/ActivityLogs/ActivityLogs";
 import SEOManagement from "./pages/SEO/SEOManagement";
+import FooterManager from "./pages/Footer/FooterManager";
+import PageContent from "./pages/Content/PageContent";
+import BlogManager from "./pages/Blog/BlogManager";
 
 
 
@@ -73,6 +76,9 @@ function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/activity-logs" element={<ActivityLogs />} />
           <Route path="/seo" element={<SEOManagement />} />
+          <Route path="/footer" element={<FooterManager />} />
+          <Route path="/page-content" element={<PageContent />} />
+          <Route path="/blog-posts" element={<BlogManager />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
