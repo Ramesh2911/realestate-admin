@@ -121,6 +121,7 @@ export default function Login() {
               value={mobile}
               onChange={(e) => setMobile(e.target.value)}
               autoComplete="tel"
+              maxLength={10}
             />
             {mobileError && (
               <span className="error-text">⚠ {mobileError}</span>
