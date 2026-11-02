@@ -14,12 +14,14 @@ import {
   FaSyncAlt,
   FaDownload,
   FaPlus,
+  FaStar,
 } from "react-icons/fa";
 import {
   getPropertyApi,
   approvePropertyApi,
   rejectPropertyApi,
   deletePropertyApi,
+  makeFeaturedApi,
 } from "../../services/auth.api";
 import {
   ListHero,
@@ -235,6 +237,32 @@ const AllProperties = () => {
     }
   };
 
+  const handleFeatured = async (row) => {
+    const next = Number(row.featured) ? 0 : 1;
+    const toastId = toast.loading(
+      next ? "Marking property as featured…" : "Removing featured…"
+    );
+    try {
+      await makeFeaturedApi(row.id, next);
+      await loadData();
+      toast.update(toastId, {
+        render: next
+          ? "Property marked as Featured."
+          : "Property removed from Featured.",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
+    } catch (err) {
+      toast.update(toastId, {
+        render: err?.response?.data?.message || "Failed to update featured.",
+        type: "error",
+        isLoading: false,
+        autoClose: 4000,
+      });
+    }
+  };
+
   const handleApprove = (id) => {
     let commentText = "Verified and Approved";
     toast(
@@ -435,7 +463,14 @@ const AllProperties = () => {
       label: "Global Status",
       sortable: true,
       sortValue: (r) => statusGroup(statusOf(r)),
-      cell: (r) => <StatusPill tone={statusTone(statusOf(r))}>{statusOf(r)}</StatusPill>,
+      cell: (r) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <StatusPill tone={statusTone(statusOf(r))}>{statusOf(r)}</StatusPill>
+          {Number(r.featured) ? (
+            <StatusPill tone="amber">Featured</StatusPill>
+          ) : null}
+        </div>
+      ),
     },
     {
       key: "verify",
@@ -463,6 +498,26 @@ const AllProperties = () => {
           >
             <FaEye />
           </button>
+          {roleId === 1 && (
+            <button
+              type="button"
+              className={`lp-icon-btn ${Number(r.featured) ? "tone-amber" : "tone-blue"}`}
+              title={
+                Number(r.featured)
+                  ? "Remove from Featured Properties"
+                  : "Mark as Featured Property"
+              }
+              aria-label={`Toggle featured for property ${r.id}`}
+              onClick={() => handleFeatured(r)}
+            >
+              <FaStar
+                style={{
+                  color: Number(r.featured) ? "#f59e0b" : undefined,
+                  fill: Number(r.featured) ? "#f59e0b" : "currentColor",
+                }}
+              />
+            </button>
+          )}
           {!isReviewed(r) ? (
             <>
               <button

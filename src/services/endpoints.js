@@ -22,6 +22,12 @@ export const PROPERTY = {
   DELETE: (id) => `/properties/delete/${id}`,
 };
 
+export const AMENITIES = {
+  LIST: "/properties/amenities/all",
+  BASE: "/properties/amenities",
+  BY_ID: (id) => `/properties/amenities/${id}`,
+};
+
 export const DASHBOARD = {
   STATS: "/dashboard/stats",
   ADMIN_STATS: "/dashboard/admin/stats",
@@ -33,6 +39,10 @@ export const LEADS = {
   REQUIREMENTS: "/leads/requirements",
   REQUIREMENT_BY_ID: (id) => `/leads/requirements/${id}`,
   INTERESTS: "/leads/interests",
+};
+
+export const LOANS = {
+  LIST: "/loans",
 };
 
 export const NOTIFICATIONS = {

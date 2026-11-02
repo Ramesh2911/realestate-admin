@@ -2,9 +2,11 @@ import API from "./api";
 import {
   AUTH,
   PROPERTY,
+  AMENITIES,
   USER,
   DASHBOARD,
   LEADS,
+  LOANS,
   NOTIFICATIONS,
   SEO,
   SETTINGS,
@@ -31,6 +33,8 @@ export const getBuyerApi = () => API.get(USER.GET_BUYER);
 export const getPropertyApi = () => API.get(PROPERTY.GET_ALL);
 export const approvePropertyApi = (id, payload = {}) => API.patch(PROPERTY.APPROVE(id), payload);
 export const rejectPropertyApi = (id, payload = {}) => API.patch(PROPERTY.REJECT(id), payload);
+export const makeFeaturedApi = (id, featured) =>
+  API.patch(PROPERTY.FEATURED(id), { featured: featured ? 1 : 0 });
 
 export const getDashboardStatsApi = () => API.get(DASHBOARD.STATS);
 export const getAdminStatsApi = () => API.get(DASHBOARD.ADMIN_STATS);
@@ -44,7 +48,16 @@ export const updateLeadApi = (id, payload) =>
 export const deleteLeadApi = (id) => API.delete(LEADS.REQUIREMENT_BY_ID(id));
 export const getAllInterestsApi = () => API.get(LEADS.INTERESTS);
 
+// Loan applications (view-only list)
+export const getLoansApi = () => API.get(LOANS.LIST);
+
 export const deletePropertyApi = (id) => API.delete(PROPERTY.DELETE(id));
+
+// Amenities management (Super Admin)
+export const getAmenitiesAdminApi = () => API.get(AMENITIES.LIST);
+export const createAmenityApi = (payload) => API.post(AMENITIES.BASE, payload);
+export const updateAmenityApi = (id, payload) => API.put(AMENITIES.BY_ID(id), payload);
+export const deleteAmenityApi = (id) => API.delete(AMENITIES.BY_ID(id));
 
 export const getNotificationsApi = (params) => API.get(NOTIFICATIONS.LIST, { params });
 export const getUnreadCountApi = () => API.get(NOTIFICATIONS.UNREAD);
@@ -73,6 +86,12 @@ export const updateContentApi = (payload) => API.put(CONTENT.BASE, payload);
 
 // Blog posts
 export const getBlogPostsApi = () => API.get(BLOG.LIST);
-export const createBlogPostApi = (payload) => API.post(BLOG.BASE, payload);
-export const updateBlogPostApi = (id, payload) => API.put(BLOG.BY_ID(id), payload);
+export const createBlogPostApi = (formData) =>
+  API.post(BLOG.BASE, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const updateBlogPostApi = (id, formData) =>
+  API.put(BLOG.BY_ID(id), formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 export const deleteBlogPostApi = (id) => API.delete(BLOG.BY_ID(id));

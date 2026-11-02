@@ -14,10 +14,12 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import MyProfile from "./pages/Profile/MyProfile";
 import AllProperties from "./pages/Properties/AllProperties";
 import PropertyTypes from "./pages/Properties/PropertyTypes";
+import Amenities from "./pages/Properties/Amenities";
 import Brokers from "./pages/Broker/Brokers";
 import Developer from "./pages/Developer/Developer";
 import Owners from "./pages/Owner/Owners";
 import Leads from "./pages/Lead/Leads";
+import Loans from "./pages/Loan/Loans";
 import SiteVisits from "./pages/SiteVisit/SiteVisits";
 import Deals from "./pages/Deal/Deals";
 import Commissions from "./pages/Commission/Commissions";
@@ -63,11 +65,13 @@ function App() {
           <Route path="/add-property" element={<AddProperty />} />
           <Route path="/properties" element={<AllProperties />} />
           <Route path="/property-types" element={<PropertyTypes />} />
+          <Route path="/amenities" element={<Amenities />} />
           <Route path="/brokers" element={<Brokers />} />
           <Route path="/developers" element={<Developer />} />
           <Route path="/owners" element={<Owners />} />
           <Route path="/buyers" element={<Buyers />} />
           <Route path="/leads" element={<Leads />} />
+          <Route path="/loans" element={<Loans />} />
           <Route path="/site-visits" element={<SiteVisits />} />
           <Route path="/deals" element={<Deals />} />
           <Route path="/commissions" element={<Commissions />} />

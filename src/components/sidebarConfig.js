@@ -22,7 +22,8 @@ import {
   FaMapMarkerAlt,
   FaLink,
   FaFileAlt,
-  FaPenNib
+  FaPenNib,
+  FaThLarge
 } from "react-icons/fa";
 
 export const SUPER_ADMIN_MENU = [
@@ -86,6 +87,12 @@ export const SUPER_ADMIN_MENU = [
         path: "/properties",
         icon: FaBuilding,
       },
+      {
+        key: "amenities",
+        label: "Amenities",
+        path: "/amenities",
+        icon: FaThLarge,
+      },
     ]
   },
   {
@@ -94,6 +101,13 @@ export const SUPER_ADMIN_MENU = [
     path: "/leads",
     icon: FaHandshake,
     iconColor: "#f59e0b",
+  },
+  {
+    key: "loans",
+    label: "Loan",
+    path: "/loans",
+    icon: FaMoneyBillWave,
+    iconColor: "#10b981",
   },
   {
     key: "seo",
@@ -196,6 +210,13 @@ export const ADMIN_A_MENU = [
     iconColor: "#f59e0b",
   },
   {
+    key: "loans",
+    label: "Loan",
+    path: "/loans",
+    icon: FaMoneyBillWave,
+    iconColor: "#10b981",
+  },
+  {
     key: "reports",
     label: "Reports",
     path: "/reports",
@@ -261,6 +282,13 @@ export const ADMIN_B_MENU = [
     iconColor: "#f59e0b",
   },
   {
+    key: "loans",
+    label: "Loan",
+    path: "/loans",
+    icon: FaMoneyBillWave,
+    iconColor: "#10b981",
+  },
+  {
     key: "site-visits",
     label: "Site Visits",
     path: "/site-visits",
@@ -293,7 +321,7 @@ export const getMenuByRole = (roleName) => {
 /* ── Section grouping for premium sidebar labels ── */
 const SECTIONS = [
   { label: "Overview", keys: ["dashboard", "activity-logs"] },
-  { label: "Workspace", keys: ["users", "property", "leads", "site-visits"] },
+  { label: "Workspace", keys: ["users", "property", "leads", "loans", "site-visits"] },
   { label: "Insights", keys: ["seo", "footer", "page-content", "blog-posts", "reports"] },
   { label: "System", keys: ["settings", "roles"] },
 ];

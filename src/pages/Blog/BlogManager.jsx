@@ -8,6 +8,7 @@ import {
   FaPlus,
   FaEdit,
   FaTrash,
+  FaImage,
 } from "react-icons/fa";
 import {
   getBlogPostsApi,
@@ -64,6 +65,8 @@ const BlogManager = () => {
   const [formId, setFormId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [formBusy, setFormBusy] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
   const [delTarget, setDelTarget] = useState(null);
   const [delBusy, setDelBusy] = useState(false);
   const dq = useDebounced(q, 300);
@@ -92,9 +95,15 @@ const BlogManager = () => {
 
   const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  const resetImageState = () => {
+    setImageFile(null);
+    setImagePreview("");
+  };
+
   const openCreate = () => {
     setFormId(null);
     setForm({ ...emptyForm, post_date: toDateInput(new Date()) });
+    resetImageState();
     setFormOpen(true);
   };
 
@@ -108,7 +117,22 @@ const BlogManager = () => {
       image_url: r.image_url || "",
       status: Number(r.status) === 1 ? 1 : 0,
     });
+    resetImageState();
     setFormOpen(true);
+  };
+
+  const onImageFile = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setImageFile(f);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(URL.createObjectURL(f));
+  };
+
+  const clearImageFile = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview("");
   };
 
   const saveForm = async (e) => {
@@ -118,23 +142,27 @@ const BlogManager = () => {
       return;
     }
     setFormBusy(true);
-    const payload = {
-      title: form.title.trim(),
-      tag: form.tag.trim(),
-      post_date: form.post_date || null,
-      excerpt: form.excerpt.trim(),
-      image_url: form.image_url.trim(),
-      status: form.status,
-    };
+    const fd = new FormData();
+    fd.append("title", form.title.trim());
+    fd.append("tag", form.tag.trim());
+    fd.append("post_date", form.post_date || "");
+    fd.append("excerpt", form.excerpt.trim());
+    fd.append("status", String(form.status));
+    if (imageFile) {
+      fd.append("blog_image", imageFile);
+    } else {
+      fd.append("image_url", form.image_url.trim());
+    }
     try {
       if (formId) {
-        await updateBlogPostApi(formId, payload);
+        await updateBlogPostApi(formId, fd);
         toast.success("Blog post updated.");
       } else {
-        await createBlogPostApi(payload);
+        await createBlogPostApi(fd);
         toast.success("Blog post created.");
       }
       setFormOpen(false);
+      clearImageFile();
       await loadData();
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to save blog post.");
@@ -317,7 +345,10 @@ const BlogManager = () => {
 
       <Modal
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => {
+          setFormOpen(false);
+          clearImageFile();
+        }}
         size="lg"
         title={formId ? "Edit Blog Post" : "New Blog Post"}
         sub={
@@ -330,7 +361,10 @@ const BlogManager = () => {
             <button
               type="button"
               className="lp-btn lp-btn-ghost"
-              onClick={() => setFormOpen(false)}
+              onClick={() => {
+                setFormOpen(false);
+                clearImageFile();
+              }}
               disabled={formBusy}
             >
               Cancel
@@ -389,14 +423,62 @@ const BlogManager = () => {
             />
           </div>
           <div className="lp-field full">
-            <label htmlFor="bl-image">Cover Image URL</label>
-            <input
-              id="bl-image"
-              type="text"
-              value={form.image_url}
-              onChange={(e) => setF("image_url", e.target.value)}
-              placeholder="https://images.unsplash.com/photo-…?auto=format&fit=crop&w=480&h=320&q=80"
-            />
+            <label>Cover Image</label>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <label
+                className="lp-btn lp-btn-ghost"
+                style={{ cursor: "pointer", marginBottom: 0 }}
+              >
+                <FaImage size={12} />
+                {imageFile || form.image_url ? "Change image" : "Choose image"}
+                <input
+                  id="bl-image"
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={onImageFile}
+                />
+              </label>
+              {(imagePreview || form.image_url) && (
+                <button
+                  type="button"
+                  className="lp-btn lp-btn-ghost"
+                  onClick={() => {
+                    clearImageFile();
+                    setF("image_url", "");
+                  }}
+                  disabled={formBusy}
+                >
+                  Remove
+                </button>
+              )}
+              {(imagePreview || form.image_url) && (
+                <img
+                  src={imagePreview || form.image_url}
+                  alt="Cover preview"
+                  style={{
+                    width: 72,
+                    height: 48,
+                    objectFit: "cover",
+                    borderRadius: 6,
+                    border: "1px solid rgba(30,76,140,.15)",
+                  }}
+                />
+              )}
+            </div>
+            <div
+              className="lp-field-hint"
+              style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}
+            >
+              JPG, PNG or WebP. Uploaded image is used on the home page blog card.
+            </div>
           </div>
           <div className="lp-field">
             <label htmlFor="bl-status">Status</label>
