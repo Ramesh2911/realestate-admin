@@ -19,6 +19,7 @@ import {
 } from "react-icons/fa";
 import {
   getPropertyApi,
+  getPropertyByIdApi,
   approvePropertyApi,
   rejectPropertyApi,
   deletePropertyApi,
@@ -48,6 +49,29 @@ const EMPTY = {
   sub: "Try a different title, city or property ID.",
 };
 
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+const API_ORIGIN = API_BASE.replace(/\/api\/v\d+\/?$/, "");
+
+const resolveImageUrl = (src) => {
+  if (!src) return "";
+  const value = String(src).trim();
+  if (!value) return "";
+  if (/^(https?:)?\/\//i.test(value) || /^(data|blob):/i.test(value)) return value;
+  return `${API_ORIGIN}${value.startsWith("/") ? "" : "/"}${value}`;
+};
+
+const fmtDate = (v) => {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 const statusOf = (r) => r.property_status || "Pending";
 
 const statusGroup = (s) => {
@@ -74,6 +98,7 @@ const AllProperties = () => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [view, setView] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
   const [delTarget, setDelTarget] = useState(null);
   const [delBusy, setDelBusy] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -211,6 +236,20 @@ const AllProperties = () => {
     },
     [roleId]
   );
+
+  const openView = async (row) => {
+    setView(row);
+    setViewLoading(true);
+    try {
+      const res = await getPropertyByIdApi(row.id);
+      const full = res?.data?.data;
+      if (full) setView((prev) => ({ ...(prev || row), ...full }));
+    } catch {
+      /* keep list-row fallback */
+    } finally {
+      setViewLoading(false);
+    }
+  };
 
   const executeStatusUpdate = async (id, type, comment) => {
     const toastId = toast.loading(
@@ -499,7 +538,10 @@ const AllProperties = () => {
             className="lp-icon-btn tone-blue"
             title="View details"
             aria-label={`View property ${r.id}`}
-            onClick={() => setView(r)}
+            onClick={() => {
+              setEditId(null);
+              openView(r);
+            }}
           >
             <FaEye />
           </button>
@@ -716,7 +758,7 @@ const AllProperties = () => {
         onClose={() => setView(null)}
         size="lg"
         title="Property Details"
-        sub={view ? `#PROP-${view.id} · listed inventory record` : ""}
+        sub={view ? `#PROP-${view.id} · full listing record` : ""}
       >
         {view && (
           <>
@@ -727,15 +769,21 @@ const AllProperties = () => {
               <div className="lp-detail-meta">
                 <span className="where">
                   <FaMapMarkerAlt size={11} />
-                  {view.address
-                    ? view.address
-                    : ""}
-                  {view.city ? `${view.address ? " · " : ""}${view.city}` : ""}
-                  {view.state ? `, ${view.state}` : ""}
+                  {[
+                    view.address,
+                    view.city,
+                    view.state,
+                    view.pincode,
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || "Location N/A"}
                 </span>
                 <StatusPill tone={statusTone(statusOf(view))}>
                   {statusOf(view)}
                 </StatusPill>
+                {Number(view.featured) ? (
+                  <StatusPill tone="amber">Featured</StatusPill>
+                ) : null}
                 <VerifyChips
                   superStatus={view.super_admin_status || "Pending"}
                   adminA={view.admin_a_status || "Pending"}
@@ -743,11 +791,18 @@ const AllProperties = () => {
                 />
               </div>
               <div className="lp-detail-price">
-                ₹{fmtNum(
+                ₹
+                {fmtNum(
                   Number(String(view.price ?? "").replace(/[^0-9.]/g, "")) || 0
                 )}
               </div>
             </div>
+
+            {viewLoading && (
+              <div className="lp-muted" style={{ fontSize: 12, marginTop: 8 }}>
+                Loading full details…
+              </div>
+            )}
 
             <div className="lp-profile-grid" style={{ marginTop: 14 }}>
               <div className="lp-info-card">
@@ -760,7 +815,11 @@ const AllProperties = () => {
                   {view.poster_phone ? (
                     <a
                       href={`tel:${view.poster_phone}`}
-                      style={{ color: "var(--primary-blue)", textDecoration: "none", fontWeight: 700 }}
+                      style={{
+                        color: "var(--primary-blue)",
+                        textDecoration: "none",
+                        fontWeight: 700,
+                      }}
                     >
                       {view.poster_phone}
                     </a>
@@ -770,38 +829,172 @@ const AllProperties = () => {
                 </div>
               </div>
               <div className="lp-info-card">
+                <div className="k">List For</div>
+                <div className="v">{view.property_for || "—"}</div>
+              </div>
+              <div className="lp-info-card">
                 <div className="k">Property Type</div>
                 <div className="v">{view.property_type || "—"}</div>
               </div>
               <div className="lp-info-card">
-                <div className="k">Purpose</div>
-                <div className="v">{view.property_for || "—"}</div>
-              </div>
-              <div className="lp-info-card">
-                <div className="k">Configuration</div>
+                <div className="k">Category ID</div>
                 <div className="v">
-                  {view.bedroom ? `${view.bedroom} bed` : ""}
-                  {view.bedroom && view.bathroom ? " · " : ""}
-                  {view.bathroom ? `${view.bathroom} bath` : ""}
-                  {!view.bedroom && !view.bathroom ? "—" : ""}
+                  {view.category_id != null && view.category_id !== ""
+                    ? `#${view.category_id}`
+                    : "—"}
                 </div>
               </div>
               <div className="lp-info-card">
                 <div className="k">Area</div>
                 <div className="v">
                   {view.area
-                    ? `${fmtNum(view.area)} ${view.area_unit || "sq ft"}`
+                    ? `${fmtNum(view.area)} ${view.area_unit || "sq.ft"}`
                     : "—"}
                 </div>
               </div>
+              <div className="lp-info-card">
+                <div className="k">Configuration</div>
+                <div className="v">
+                  {[
+                    view.bedroom ? `${view.bedroom} bed` : "",
+                    view.bathroom ? `${view.bathroom} bath` : "",
+                    view.balcony ? `${view.balcony} balcony` : "",
+                    view.parking ? `${view.parking} parking` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
+                </div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Furnishing</div>
+                <div className="v">{view.furnishing || "—"}</div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Ownership</div>
+                <div className="v">{view.ownership || "—"}</div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Construction</div>
+                <div className="v">{view.construction_status || "—"}</div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Possession Date</div>
+                <div className="v">{fmtDate(view.possession_date)}</div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Listed On</div>
+                <div className="v">{fmtDate(view.created_at)}</div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Full Address</div>
+                <div className="v">
+                  {[view.address, view.city, view.state, view.country]
+                    .filter(Boolean)
+                    .join(", ") || "—"}
+                </div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Pincode</div>
+                <div className="v">{view.pincode || "—"}</div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Views</div>
+                <div className="v">{view.view_count ?? 0}</div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Featured</div>
+                <div className="v">{Number(view.featured) ? "Yes" : "No"}</div>
+              </div>
             </div>
 
-            {view.description && (
-              <div className="lp-desc">
-                <div className="k">Description</div>
-                <p>{view.description}</p>
+            <div className="lp-desc">
+              <div className="k">Description</div>
+              <p>{view.description || "No description provided."}</p>
+            </div>
+
+            <div className="lp-desc" style={{ marginTop: 12 }}>
+              <div className="k">
+                Gallery Images (
+                {Array.isArray(view.images) ? view.images.length : 0})
               </div>
-            )}
+              {Array.isArray(view.images) && view.images.length > 0 ? (
+                <div className="lp-detail-gallery">
+                  {view.images.map((url, i) => (
+                    <a
+                      key={`img-${i}`}
+                      href={resolveImageUrl(url)}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Open full image"
+                    >
+                      <img src={resolveImageUrl(url)} alt="" />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p>No gallery images uploaded.</p>
+              )}
+            </div>
+
+            <div className="lp-desc" style={{ marginTop: 12 }}>
+              <div className="k">
+                Floor Plans (
+                {Array.isArray(view.floor_plans)
+                  ? view.floor_plans.length
+                  : view.floor_plan_url || view.floor_plan
+                    ? 1
+                    : 0}
+                )
+              </div>
+              {(() => {
+                const plans = Array.isArray(view.floor_plans)
+                  ? view.floor_plans
+                  : view.floor_plan_url
+                    ? [view.floor_plan_url]
+                    : view.floor_plan
+                      ? [`/uploads/property/floor-plans/${view.floor_plan}`]
+                      : [];
+                return plans.length > 0 ? (
+                  <div className="lp-detail-gallery">
+                    {plans.map((url, i) => (
+                      <a
+                        key={`fp-${i}`}
+                        href={resolveImageUrl(url)}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Open floor plan"
+                      >
+                        <img
+                          className="plan"
+                          src={resolveImageUrl(url)}
+                          alt=""
+                        />
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p>No floor plans uploaded.</p>
+                );
+              })()}
+            </div>
+
+            <div className="lp-desc" style={{ marginTop: 12 }}>
+              <div className="k">
+                Amenities (
+                {Array.isArray(view.amenities) ? view.amenities.length : 0})
+              </div>
+              {Array.isArray(view.amenities) && view.amenities.length > 0 ? (
+                <div className="lp-amenity-chips">
+                  {view.amenities.map((a) => (
+                    <span key={a.id ?? a.amenity_id} className="lp-kw">
+                      {a.amenity_name}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p>No amenities selected.</p>
+              )}
+            </div>
 
             <div className="lp-verify-rows">
               <div className="lp-verify-row">
