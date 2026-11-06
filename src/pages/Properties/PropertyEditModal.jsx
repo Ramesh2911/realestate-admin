@@ -1,6 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
-import { FaImage, FaTimes } from "react-icons/fa";
+import {
+  FaImage,
+  FaTimes,
+  FaCheck,
+  FaHome,
+  FaTag,
+  FaBed,
+  FaMapMarkerAlt,
+  FaSwimmingPool,
+  FaImages,
+  FaLayerGroup,
+} from "react-icons/fa";
 import {
   getPropertyByIdApi,
   updatePropertyApi,
@@ -8,6 +19,7 @@ import {
   getAmenitiesPublicApi,
 } from "../../services/auth.api";
 import { Modal } from "../../components/ListUI";
+import "./PropertyEditModal.css";
 
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
@@ -54,6 +66,22 @@ const toDateInput = (v) => {
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
+
+const Section = ({ icon, tone, title, hint, badge, badgeOn, children }) => (
+  <section className="pe-section">
+    <div className="pe-section-head">
+      <span className={`pe-section-icon ${tone || ""}`}>{icon}</span>
+      <div className="pe-section-meta">
+        <h3>{title}</h3>
+        {hint && <p>{hint}</p>}
+      </div>
+      {badge != null && badge !== "" && (
+        <span className={`pe-badge ${badgeOn ? "on" : ""}`}>{badge}</span>
+      )}
+    </div>
+    <div className="pe-section-body">{children}</div>
+  </section>
+);
 
 const PropertyEditModal = ({ open, propertyId, onClose, onSaved }) => {
   const [loading, setLoading] = useState(false);
@@ -280,6 +308,9 @@ const PropertyEditModal = ({ open, propertyId, onClose, onSaved }) => {
 
   if (!open) return null;
 
+  const photoCount = existingImages.length + newImages.length;
+  const planCount = existingFloorPlans.length + floorPlanPreviews.length;
+
   return (
     <Modal
       open={open}
@@ -287,7 +318,7 @@ const PropertyEditModal = ({ open, propertyId, onClose, onSaved }) => {
         if (busy) return;
         onClose();
       }}
-      size="lg"
+      size="xl"
       title="Edit Property"
       sub={propertyId ? `#PROP-${propertyId} · core fields, media & amenities` : ""}
       footer={
@@ -313,560 +344,426 @@ const PropertyEditModal = ({ open, propertyId, onClose, onSaved }) => {
       }
     >
       {loading ? (
-        <div style={{ padding: 24, textAlign: "center", opacity: 0.7 }}>
+        <div className="pe-loading">
+          <div className="pe-ring" />
           Loading property…
         </div>
       ) : (
-        <form id="property-edit-form" className="lp-form-grid" onSubmit={saveForm}>
-          <div className="lp-field full">
-            <label htmlFor="pe-title">Title *</label>
-            <input
-              id="pe-title"
-              type="text"
-              required
-              value={form.property_title}
-              onChange={(e) => setF("property_title", e.target.value)}
-              placeholder="Property title"
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-category">Category</label>
-            <select
-              id="pe-category"
-              value={form.category_id}
-              onChange={(e) => setF("category_id", e.target.value)}
-            >
-              <option value="">-- Select --</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.category_name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-for">List For</label>
-            <select
-              id="pe-for"
-              value={form.property_for}
-              onChange={(e) => setF("property_for", e.target.value)}
-            >
-              <option value="Sale">For Sale</option>
-              <option value="Rent">For Rent</option>
-            </select>
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-type">Property Type</label>
-            <select
-              id="pe-type"
-              value={form.property_type}
-              onChange={(e) => setF("property_type", e.target.value)}
-            >
-              <option value="Residential">Residential</option>
-              <option value="Commercial">Commercial</option>
-            </select>
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-price">Price (₹) *</label>
-            <input
-              id="pe-price"
-              type="text"
-              required
-              value={form.price}
-              onChange={(e) => setF("price", e.target.value)}
-              placeholder="e.g. 4500000"
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-area">Area</label>
-            <input
-              id="pe-area"
-              type="text"
-              value={form.area}
-              onChange={(e) => setF("area", e.target.value)}
-              placeholder="e.g. 1200"
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-area-unit">Area Unit</label>
-            <select
-              id="pe-area-unit"
-              value={form.area_unit}
-              onChange={(e) => setF("area_unit", e.target.value)}
-            >
-              <option value="sq.ft">sq.ft</option>
-              <option value="sq.m">sq.m</option>
-              <option value="sq.yd">sq.yd</option>
-              <option value="acre">acre</option>
-              <option value="bigha">bigha</option>
-            </select>
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-bed">Bedrooms</label>
-            <input
-              id="pe-bed"
-              type="number"
-              min="0"
-              value={form.bedroom}
-              onChange={(e) => setF("bedroom", e.target.value)}
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-bath">Bathrooms</label>
-            <input
-              id="pe-bath"
-              type="number"
-              min="0"
-              value={form.bathroom}
-              onChange={(e) => setF("bathroom", e.target.value)}
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-balcony">Balconies</label>
-            <input
-              id="pe-balcony"
-              type="number"
-              min="0"
-              value={form.balcony}
-              onChange={(e) => setF("balcony", e.target.value)}
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-parking">Parking</label>
-            <input
-              id="pe-parking"
-              type="number"
-              min="0"
-              value={form.parking}
-              onChange={(e) => setF("parking", e.target.value)}
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-furnishing">Furnishing</label>
-            <select
-              id="pe-furnishing"
-              value={form.furnishing}
-              onChange={(e) => setF("furnishing", e.target.value)}
-            >
-              <option value="Unfurnished">Unfurnished</option>
-              <option value="Semi Furnished">Semi Furnished</option>
-              <option value="Fully Furnished">Fully Furnished</option>
-            </select>
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-ownership">Ownership</label>
-            <select
-              id="pe-ownership"
-              value={form.ownership}
-              onChange={(e) => setF("ownership", e.target.value)}
-            >
-              <option value="Freehold">Freehold</option>
-              <option value="Leasehold">Leasehold</option>
-              <option value="Co-operative Society">Co-operative Society</option>
-            </select>
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-construction">Construction Status</label>
-            <select
-              id="pe-construction"
-              value={form.construction_status}
-              onChange={(e) => setF("construction_status", e.target.value)}
-            >
-              <option value="Ready to Move">Ready to Move</option>
-              <option value="Under Construction">Under Construction</option>
-              <option value="New Launch">New Launch</option>
-            </select>
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-possession">Possession Date</label>
-            <input
-              id="pe-possession"
-              type="date"
-              value={form.possession_date}
-              onChange={(e) => setF("possession_date", e.target.value)}
-            />
-          </div>
-          <div className="lp-field full">
-            <label htmlFor="pe-description">Description</label>
-            <textarea
-              id="pe-description"
-              rows={3}
-              value={form.description}
-              onChange={(e) => setF("description", e.target.value)}
-              placeholder="Listing description…"
-            />
-          </div>
-          <div className="lp-field full">
-            <label htmlFor="pe-address">Address</label>
-            <input
-              id="pe-address"
-              type="text"
-              value={form.address}
-              onChange={(e) => setF("address", e.target.value)}
-              placeholder="Street address"
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-city">City</label>
-            <input
-              id="pe-city"
-              type="text"
-              value={form.city}
-              onChange={(e) => setF("city", e.target.value)}
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-state">State</label>
-            <input
-              id="pe-state"
-              type="text"
-              value={form.state}
-              onChange={(e) => setF("state", e.target.value)}
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-country">Country</label>
-            <input
-              id="pe-country"
-              type="text"
-              value={form.country}
-              onChange={(e) => setF("country", e.target.value)}
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-pincode">Pincode</label>
-            <input
-              id="pe-pincode"
-              type="text"
-              value={form.pincode}
-              onChange={(e) => setF("pincode", e.target.value)}
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-lat">Latitude</label>
-            <input
-              id="pe-lat"
-              type="text"
-              value={form.latitude}
-              onChange={(e) => setF("latitude", e.target.value)}
-              placeholder="optional"
-            />
-          </div>
-          <div className="lp-field">
-            <label htmlFor="pe-lng">Longitude</label>
-            <input
-              id="pe-lng"
-              type="text"
-              value={form.longitude}
-              onChange={(e) => setF("longitude", e.target.value)}
-              placeholder="optional"
-            />
-          </div>
-
-          <div className="lp-field full">
-            <label>Amenities</label>
-            {amenities.length === 0 ? (
-              <div className="lp-field-hint" style={{ fontSize: 12, opacity: 0.7 }}>
-                No amenities available.
+        <form id="property-edit-form" className="pe-form" onSubmit={saveForm}>
+          <Section
+            icon={<FaHome />}
+            tone="blue"
+            title="Basic Information"
+            hint="Title, listing type, pricing and description"
+          >
+            <div className="pe-grid">
+              <div className="lp-field full">
+                <label htmlFor="pe-title">Title *</label>
+                <input
+                  id="pe-title"
+                  type="text"
+                  required
+                  value={form.property_title}
+                  onChange={(e) => setF("property_title", e.target.value)}
+                  placeholder="Property title"
+                />
               </div>
+              <div className="lp-field">
+                <label htmlFor="pe-category">Category</label>
+                <select
+                  id="pe-category"
+                  value={form.category_id}
+                  onChange={(e) => setF("category_id", e.target.value)}
+                >
+                  <option value="">-- Select --</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.category_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-for">List For</label>
+                <select
+                  id="pe-for"
+                  value={form.property_for}
+                  onChange={(e) => setF("property_for", e.target.value)}
+                >
+                  <option value="Sale">For Sale</option>
+                  <option value="Rent">For Rent</option>
+                </select>
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-type">Property Type</label>
+                <select
+                  id="pe-type"
+                  value={form.property_type}
+                  onChange={(e) => setF("property_type", e.target.value)}
+                >
+                  <option value="Residential">Residential</option>
+                  <option value="Commercial">Commercial</option>
+                </select>
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-price">Price (₹) *</label>
+                <input
+                  id="pe-price"
+                  type="text"
+                  required
+                  value={form.price}
+                  onChange={(e) => setF("price", e.target.value)}
+                  placeholder="e.g. 4500000"
+                />
+              </div>
+              <div className="lp-field full">
+                <label htmlFor="pe-description">Description</label>
+                <textarea
+                  id="pe-description"
+                  rows={3}
+                  value={form.description}
+                  onChange={(e) => setF("description", e.target.value)}
+                  placeholder="Listing description…"
+                />
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            icon={<FaTag />}
+            tone="green"
+            title="Specifications"
+            hint="Size, rooms, furnishing and status"
+          >
+            <div className="pe-grid" style={{ marginBottom: 14 }}>
+              <div className="lp-field">
+                <label htmlFor="pe-area">Area</label>
+                <input
+                  id="pe-area"
+                  type="text"
+                  value={form.area}
+                  onChange={(e) => setF("area", e.target.value)}
+                  placeholder="e.g. 1200"
+                />
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-area-unit">Area Unit</label>
+                <select
+                  id="pe-area-unit"
+                  value={form.area_unit}
+                  onChange={(e) => setF("area_unit", e.target.value)}
+                >
+                  <option value="sq.ft">sq.ft</option>
+                  <option value="sq.m">sq.m</option>
+                  <option value="sq.yd">sq.yd</option>
+                  <option value="acre">acre</option>
+                  <option value="bigha">bigha</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="pe-specs" style={{ marginBottom: 14 }}>
+              <label className="pe-spec" htmlFor="pe-bed">
+                <span>Bedrooms</span>
+                <input
+                  id="pe-bed"
+                  type="number"
+                  min="0"
+                  value={form.bedroom}
+                  onChange={(e) => setF("bedroom", e.target.value)}
+                />
+              </label>
+              <label className="pe-spec" htmlFor="pe-bath">
+                <span>Bathrooms</span>
+                <input
+                  id="pe-bath"
+                  type="number"
+                  min="0"
+                  value={form.bathroom}
+                  onChange={(e) => setF("bathroom", e.target.value)}
+                />
+              </label>
+              <label className="pe-spec" htmlFor="pe-balcony">
+                <span>Balconies</span>
+                <input
+                  id="pe-balcony"
+                  type="number"
+                  min="0"
+                  value={form.balcony}
+                  onChange={(e) => setF("balcony", e.target.value)}
+                />
+              </label>
+              <label className="pe-spec" htmlFor="pe-parking">
+                <span>Parking</span>
+                <input
+                  id="pe-parking"
+                  type="number"
+                  min="0"
+                  value={form.parking}
+                  onChange={(e) => setF("parking", e.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="pe-grid">
+              <div className="lp-field">
+                <label htmlFor="pe-furnishing">Furnishing</label>
+                <select
+                  id="pe-furnishing"
+                  value={form.furnishing}
+                  onChange={(e) => setF("furnishing", e.target.value)}
+                >
+                  <option value="Unfurnished">Unfurnished</option>
+                  <option value="Semi Furnished">Semi Furnished</option>
+                  <option value="Fully Furnished">Fully Furnished</option>
+                </select>
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-ownership">Ownership</label>
+                <select
+                  id="pe-ownership"
+                  value={form.ownership}
+                  onChange={(e) => setF("ownership", e.target.value)}
+                >
+                  <option value="Freehold">Freehold</option>
+                  <option value="Leasehold">Leasehold</option>
+                  <option value="Co-operative Society">Co-operative Society</option>
+                </select>
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-construction">Construction Status</label>
+                <select
+                  id="pe-construction"
+                  value={form.construction_status}
+                  onChange={(e) => setF("construction_status", e.target.value)}
+                >
+                  <option value="Ready to Move">Ready to Move</option>
+                  <option value="Under Construction">Under Construction</option>
+                  <option value="New Launch">New Launch</option>
+                </select>
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-possession">Possession Date</label>
+                <input
+                  id="pe-possession"
+                  type="date"
+                  value={form.possession_date}
+                  onChange={(e) => setF("possession_date", e.target.value)}
+                />
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            icon={<FaMapMarkerAlt />}
+            tone="amber"
+            title="Location"
+            hint="Address and optional map coordinates"
+          >
+            <div className="pe-grid">
+              <div className="lp-field full">
+                <label htmlFor="pe-address">Address</label>
+                <input
+                  id="pe-address"
+                  type="text"
+                  value={form.address}
+                  onChange={(e) => setF("address", e.target.value)}
+                  placeholder="Street address"
+                />
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-city">City</label>
+                <input
+                  id="pe-city"
+                  type="text"
+                  value={form.city}
+                  onChange={(e) => setF("city", e.target.value)}
+                />
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-state">State</label>
+                <input
+                  id="pe-state"
+                  type="text"
+                  value={form.state}
+                  onChange={(e) => setF("state", e.target.value)}
+                />
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-country">Country</label>
+                <input
+                  id="pe-country"
+                  type="text"
+                  value={form.country}
+                  onChange={(e) => setF("country", e.target.value)}
+                />
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-pincode">Pincode</label>
+                <input
+                  id="pe-pincode"
+                  type="text"
+                  value={form.pincode}
+                  onChange={(e) => setF("pincode", e.target.value)}
+                />
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-lat">Latitude</label>
+                <input
+                  id="pe-lat"
+                  type="text"
+                  value={form.latitude}
+                  onChange={(e) => setF("latitude", e.target.value)}
+                  placeholder="optional"
+                />
+              </div>
+              <div className="lp-field">
+                <label htmlFor="pe-lng">Longitude</label>
+                <input
+                  id="pe-lng"
+                  type="text"
+                  value={form.longitude}
+                  onChange={(e) => setF("longitude", e.target.value)}
+                  placeholder="optional"
+                />
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            icon={<FaSwimmingPool />}
+            tone="green"
+            title="Amenities"
+            hint="Tap chips to include or exclude"
+            badge={`${selectedAmenities.length} selected`}
+            badgeOn={selectedAmenities.length > 0}
+          >
+            {amenities.length === 0 ? (
+              <div className="pe-empty">No amenities available.</div>
             ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-                  gap: 8,
-                }}
-              >
+              <div className="pe-amenities">
                 {amenities.map((a) => {
                   const checked = selectedAmenities.includes(String(a.id));
                   return (
-                    <label
+                    <button
                       key={a.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "8px 10px",
-                        border: "1px solid rgba(30,76,140,.15)",
-                        borderRadius: 8,
-                        cursor: "pointer",
-                        fontSize: 13,
-                        background: checked ? "rgba(124,185,61,.12)" : "#fff",
-                        borderColor: checked ? "#7CB93D" : undefined,
-                      }}
+                      type="button"
+                      className={`pe-amenity ${checked ? "on" : ""}`}
+                      onClick={() => toggleAmenity(a.id)}
+                      aria-pressed={checked}
                     >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleAmenity(a.id)}
-                      />
-                      <span style={{ truncate: "ellipsis", overflow: "hidden" }}>
-                        {a.amenity_name}
+                      <span className="pe-check">
+                        <FaCheck />
                       </span>
-                    </label>
+                      <span className="pe-name">{a.amenity_name}</span>
+                    </button>
                   );
                 })}
               </div>
             )}
-          </div>
+          </Section>
 
-          <div className="lp-field full">
-            <label>Gallery Images</label>
-            {existingImages.length > 0 && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
-                  gap: 8,
-                  marginBottom: 10,
-                }}
-              >
-                {existingImages.map((url, i) => (
-                  <div
-                    key={`ex-${i}`}
-                    style={{
-                      position: "relative",
-                      aspectRatio: "1",
-                      borderRadius: 8,
-                      overflow: "hidden",
-                      border: "1px solid rgba(30,76,140,.15)",
-                    }}
-                  >
-                    <img
-                      src={resolveImageUrl(url)}
-                      alt=""
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => markImageForDeletion(url)}
-                      title="Remove image"
-                      style={{
-                        position: "absolute",
-                        top: 4,
-                        right: 4,
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        border: "none",
-                        background: "#ef4444",
-                        color: "#fff",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 11,
-                      }}
-                    >
-                      <FaTimes />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <Section
+            icon={<FaImages />}
+            tone="rose"
+            title="Gallery Images"
+            hint="Main photos shown on the listing"
+            badge={`${photoCount} photo${photoCount === 1 ? "" : "s"}`}
+            badgeOn={photoCount > 0}
+          >
+            <div className="pe-media-bar">
               <label className="lp-btn lp-btn-ghost" style={{ cursor: "pointer", marginBottom: 0 }}>
                 <FaImage size={12} />
                 Add images
                 <input type="file" accept="image/*" multiple hidden onChange={onNewImages} />
               </label>
-              <span className="lp-field-hint" style={{ fontSize: 12, opacity: 0.7 }}>
-                PNG, JPG · up to 20 per save
-              </span>
+              <span className="hint">PNG, JPG · up to 20 per save</span>
             </div>
-            {newImagePreviews.length > 0 && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
-                  gap: 8,
-                  marginTop: 10,
-                }}
-              >
-                {newImagePreviews.map((src, i) => (
-                  <div
-                    key={`new-${i}`}
-                    style={{
-                      position: "relative",
-                      aspectRatio: "1",
-                      borderRadius: 8,
-                      overflow: "hidden",
-                      border: "1px solid #7CB93D",
-                    }}
-                  >
-                    <img
-                      src={src}
-                      alt=""
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeNewImage(i)}
-                      style={{
-                        position: "absolute",
-                        top: 4,
-                        right: 4,
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        border: "none",
-                        background: "#ef4444",
-                        color: "#fff",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 11,
-                      }}
-                    >
-                      <FaTimes />
-                    </button>
-                    <span
-                      style={{
-                        position: "absolute",
-                        bottom: 4,
-                        left: 4,
-                        fontSize: 9,
-                        fontWeight: 700,
-                        background: "#7CB93D",
-                        color: "#fff",
-                        padding: "1px 4px",
-                        borderRadius: 4,
-                      }}
-                    >
-                      NEW
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
 
-          <div className="lp-field full">
-            <label>Floor Plans</label>
-            {(existingFloorPlans.length > 0 || floorPlanPreviews.length > 0) && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
-                  gap: 8,
-                  marginBottom: 10,
-                }}
-              >
-                {floorPlanPreviews.map((src, i) => (
-                  <div
-                    key={`fp-new-${i}`}
-                    style={{
-                      position: "relative",
-                      aspectRatio: "4/3",
-                      borderRadius: 8,
-                      overflow: "hidden",
-                      border: "1px solid #7CB93D",
-                      background: "#f8fafc",
-                    }}
-                  >
-                    <img
-                      src={src}
-                      alt=""
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                        padding: 4,
-                      }}
-                    />
+            {(existingImages.length > 0 || newImagePreviews.length > 0) && (
+              <div className="pe-thumbs">
+                {existingImages.map((url, i) => (
+                  <div key={`ex-${i}`} className="pe-thumb">
+                    <img src={resolveImageUrl(url)} alt="" />
                     <button
                       type="button"
-                      onClick={() => removeNewFloorPlan(i)}
-                      style={{
-                        position: "absolute",
-                        top: 4,
-                        right: 4,
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        border: "none",
-                        background: "#ef4444",
-                        color: "#fff",
-                        cursor: "pointer",
-                        fontSize: 11,
-                      }}
+                      className="pe-x"
+                      onClick={() => markImageForDeletion(url)}
+                      title="Remove image"
                     >
                       <FaTimes />
                     </button>
-                    <span
-                      style={{
-                        position: "absolute",
-                        bottom: 4,
-                        left: 4,
-                        fontSize: 9,
-                        fontWeight: 700,
-                        background: "#7CB93D",
-                        color: "#fff",
-                        padding: "1px 4px",
-                        borderRadius: 4,
-                      }}
-                    >
-                      NEW
-                    </span>
+                    <span className="pe-tag current">Current</span>
                   </div>
                 ))}
-                {existingFloorPlans.map((url, i) => (
-                  <div
-                    key={`fp-ex-${i}`}
-                    style={{
-                      position: "relative",
-                      aspectRatio: "4/3",
-                      borderRadius: 8,
-                      overflow: "hidden",
-                      border: "1px solid rgba(30,76,140,.15)",
-                      background: "#f8fafc",
-                    }}
-                  >
-                    <img
-                      src={resolveImageUrl(url)}
-                      alt=""
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                        padding: 4,
-                      }}
-                    />
+                {newImagePreviews.map((src, i) => (
+                  <div key={`new-${i}`} className="pe-thumb new">
+                    <img src={src} alt="" />
                     <button
                       type="button"
-                      onClick={() => removeExistingFloorPlan(i)}
-                      style={{
-                        position: "absolute",
-                        top: 4,
-                        right: 4,
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        border: "none",
-                        background: "#ef4444",
-                        color: "#fff",
-                        cursor: "pointer",
-                        fontSize: 11,
-                      }}
+                      className="pe-x"
+                      onClick={() => removeNewImage(i)}
+                      title="Remove image"
                     >
                       <FaTimes />
                     </button>
+                    <span className="pe-tag">New</span>
                   </div>
                 ))}
               </div>
             )}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          </Section>
+
+          <Section
+            icon={<FaLayerGroup />}
+            tone="blue"
+            title="Floor Plans"
+            hint="Layout images for the property"
+            badge={`${planCount} plan${planCount === 1 ? "" : "s"}`}
+            badgeOn={planCount > 0}
+          >
+            <div className="pe-media-bar">
               <label className="lp-btn lp-btn-ghost" style={{ cursor: "pointer", marginBottom: 0 }}>
                 <FaImage size={12} />
                 Add floor plans
                 <input type="file" accept="image/*" multiple hidden onChange={onFloorPlans} />
               </label>
-              <span className="lp-field-hint" style={{ fontSize: 12, opacity: 0.7 }}>
-                Up to 10 images
-              </span>
+              <span className="hint">Up to 10 images</span>
             </div>
-          </div>
+
+            {(existingFloorPlans.length > 0 || floorPlanPreviews.length > 0) && (
+              <div className="pe-thumbs">
+                {floorPlanPreviews.map((src, i) => (
+                  <div key={`fp-new-${i}`} className="pe-thumb plan new">
+                    <img src={src} alt="" />
+                    <button
+                      type="button"
+                      className="pe-x"
+                      onClick={() => removeNewFloorPlan(i)}
+                      title="Remove floor plan"
+                    >
+                      <FaTimes />
+                    </button>
+                    <span className="pe-tag">New</span>
+                  </div>
+                ))}
+                {existingFloorPlans.map((url, i) => (
+                  <div key={`fp-ex-${i}`} className="pe-thumb plan">
+                    <img src={resolveImageUrl(url)} alt="" />
+                    <button
+                      type="button"
+                      className="pe-x"
+                      onClick={() => removeExistingFloorPlan(i)}
+                      title="Remove floor plan"
+                    >
+                      <FaTimes />
+                    </button>
+                    <span className="pe-tag current">Current</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
         </form>
       )}
     </Modal>

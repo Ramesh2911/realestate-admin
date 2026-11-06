@@ -913,6 +913,7 @@
 }
 .lp-modal.sm { max-width: 440px; }
 .lp-modal.lg { max-width: 680px; }
+.lp-modal.xl { max-width: 860px; }
 
 .lp-modal-head {
   display: flex;
