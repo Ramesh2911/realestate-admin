@@ -15,6 +15,7 @@ import {
   FaDownload,
   FaPlus,
   FaStar,
+  FaEdit,
 } from "react-icons/fa";
 import {
   getPropertyApi,
@@ -23,6 +24,7 @@ import {
   deletePropertyApi,
   makeFeaturedApi,
 } from "../../services/auth.api";
+import PropertyEditModal from "./PropertyEditModal";
 import {
   ListHero,
   StatGrid,
@@ -74,6 +76,7 @@ const AllProperties = () => {
   const [view, setView] = useState(null);
   const [delTarget, setDelTarget] = useState(null);
   const [delBusy, setDelBusy] = useState(false);
+  const [editId, setEditId] = useState(null);
   const dq = useDebounced(q, 300);
 
   const roleId = useMemo(
@@ -498,6 +501,18 @@ const AllProperties = () => {
           >
             <FaEye />
           </button>
+          <button
+            type="button"
+            className="lp-icon-btn tone-amber"
+            title="Edit property"
+            aria-label={`Edit property ${r.id}`}
+            onClick={() => {
+              setView(null);
+              setEditId(r.id);
+            }}
+          >
+            <FaEdit />
+          </button>
           {roleId === 1 && (
             <button
               type="button"
@@ -799,6 +814,16 @@ const AllProperties = () => {
           </>
         )}
       </Modal>
+
+      <PropertyEditModal
+        open={!!editId}
+        propertyId={editId}
+        onClose={() => setEditId(null)}
+        onSaved={() => {
+          setLoading(true);
+          loadData();
+        }}
+      />
 
       <Confirm
         open={!!delTarget}

@@ -31,6 +31,13 @@ export const getDeveloperApi = () => API.get(USER.GET_DEVELOPER);
 export const getBuyerApi = () => API.get(USER.GET_BUYER);
 
 export const getPropertyApi = () => API.get(PROPERTY.GET_ALL);
+export const getPropertyByIdApi = (id) => API.get(PROPERTY.BY_ID(id));
+export const updatePropertyApi = (id, formData) =>
+  API.put(PROPERTY.UPDATE(id), formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const getCategoriesApi = () => API.get(PROPERTY.CATEGORIES);
+export const getAmenitiesPublicApi = () => API.get(PROPERTY.AMENITIES);
 export const approvePropertyApi = (id, payload = {}) => API.patch(PROPERTY.APPROVE(id), payload);
 export const rejectPropertyApi = (id, payload = {}) => API.patch(PROPERTY.REJECT(id), payload);
 export const makeFeaturedApi = (id, featured) =>

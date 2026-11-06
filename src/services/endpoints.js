@@ -15,11 +15,15 @@ export const USER = {
 
 export const PROPERTY = {
   GET_ALL: "/properties/all",
+  BY_ID: (id) => `/properties/details/${id}`,
+  UPDATE: (id) => `/properties/update/${id}`,
   APPROVE: (id) => `/properties/admin/approve/${id}`,
   REJECT: (id) => `/properties/admin/reject/${id}`,
   STATUS: (id) => `/properties/admin/status/${id}`,
   FEATURED: (id) => `/properties/admin/featured/${id}`,
   DELETE: (id) => `/properties/delete/${id}`,
+  CATEGORIES: "/properties/categories",
+  AMENITIES: "/properties/amenities",
 };
 
 export const AMENITIES = {
