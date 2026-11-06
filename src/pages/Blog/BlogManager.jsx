@@ -14,6 +14,7 @@ import {
   getBlogPostsApi,
   createBlogPostApi,
   updateBlogPostApi,
+  updateBlogPostJsonApi,
   deleteBlogPostApi,
 } from "../../services/auth.api";
 import {
@@ -30,6 +31,18 @@ import { useDebounced, fmtNum, fmtWhen } from "../../utils/list";
 const EMPTY = {
   title: "No blog posts found",
   sub: "Create your first blog post — it will appear in the website home page blog section.",
+};
+
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+const API_ORIGIN = API_BASE.replace(/\/api\/v\d+\/?$/, "");
+
+const resolveImageUrl = (src) => {
+  if (!src) return "";
+  const value = String(src).trim();
+  if (!value) return "";
+  if (/^(https?:)?\/\//i.test(value) || /^(data|blob):/i.test(value)) return value;
+  return `${API_ORIGIN}${value.startsWith("/") ? "" : "/"}${value}`;
 };
 
 const emptyForm = {
@@ -142,22 +155,30 @@ const BlogManager = () => {
       return;
     }
     setFormBusy(true);
-    const fd = new FormData();
-    fd.append("title", form.title.trim());
-    fd.append("tag", form.tag.trim());
-    fd.append("post_date", form.post_date || "");
-    fd.append("excerpt", form.excerpt.trim());
-    fd.append("status", String(form.status));
-    if (imageFile) {
-      fd.append("blog_image", imageFile);
-    } else {
-      fd.append("image_url", form.image_url.trim());
-    }
     try {
+      const payload = {
+        title: form.title.trim(),
+        tag: form.tag.trim(),
+        post_date: form.post_date || "",
+        excerpt: form.excerpt.trim(),
+        status: String(form.status),
+        image_url: form.image_url.trim(),
+      };
+
       if (formId) {
-        await updateBlogPostApi(formId, fd);
+        if (imageFile) {
+          const fd = new FormData();
+          Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
+          fd.append("blog_image", imageFile);
+          await updateBlogPostApi(formId, fd);
+        } else {
+          await updateBlogPostJsonApi(formId, payload);
+        }
         toast.success("Blog post updated.");
       } else {
+        const fd = new FormData();
+        Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
+        if (imageFile) fd.append("blog_image", imageFile);
         await createBlogPostApi(fd);
         toast.success("Blog post created.");
       }
@@ -165,7 +186,11 @@ const BlogManager = () => {
       clearImageFile();
       await loadData();
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to save blog post.");
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to save blog post."
+      );
     } finally {
       setFormBusy(false);
     }
@@ -461,7 +486,7 @@ const BlogManager = () => {
               )}
               {(imagePreview || form.image_url) && (
                 <img
-                  src={imagePreview || form.image_url}
+                  src={imagePreview || resolveImageUrl(form.image_url)}
                   alt="Cover preview"
                   style={{
                     width: 72,
