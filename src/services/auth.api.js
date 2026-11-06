@@ -101,4 +101,6 @@ export const updateBlogPostApi = (id, formData) =>
   API.put(BLOG.BY_ID(id), formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+export const updateBlogPostJsonApi = (id, payload) =>
+  API.put(BLOG.BY_ID(id), payload);
 export const deleteBlogPostApi = (id) => API.delete(BLOG.BY_ID(id));
