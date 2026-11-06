@@ -751,6 +751,25 @@ const AllProperties = () => {
 
             <div className="lp-profile-grid" style={{ marginTop: 14 }}>
               <div className="lp-info-card">
+                <div className="k">Posted By</div>
+                <div className="v">{view.poster_name || "—"}</div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Contact Phone</div>
+                <div className="v">
+                  {view.poster_phone ? (
+                    <a
+                      href={`tel:${view.poster_phone}`}
+                      style={{ color: "var(--primary-blue)", textDecoration: "none", fontWeight: 700 }}
+                    >
+                      {view.poster_phone}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </div>
+              </div>
+              <div className="lp-info-card">
                 <div className="k">Property Type</div>
                 <div className="v">{view.property_type || "—"}</div>
               </div>
