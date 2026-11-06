@@ -621,11 +621,13 @@
 }
 
 /* Row actions */
+.lp-table th.lp-right { padding-right: 14px; }
 .lp-actions-cell {
   display: flex;
   align-items: center;
   gap: 6px;
   justify-content: flex-end;
+  flex-wrap: nowrap;
 }
 .lp-icon-btn {
   width: 32px;
