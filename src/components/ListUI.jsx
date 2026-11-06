@@ -216,7 +216,13 @@ const ListTable = ({
               <th
                 key={col.key}
                 style={col.width ? { width: col.width } : undefined}
-                className={col.align === "right" ? "lp-right" : ""}
+                className={
+                  col.align === "right"
+                    ? "lp-right"
+                    : col.align === "center"
+                      ? "lp-center"
+                      : ""
+                }
               >
                 {col.sortable ? (
                   <button

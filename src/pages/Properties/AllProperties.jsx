@@ -490,7 +490,7 @@ const AllProperties = () => {
     {
       key: "actions",
       label: "Actions",
-      align: "right",
+      align: "center",
       width: "240px",
       cell: (r) => (
         <div className="lp-actions-cell">
