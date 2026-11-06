@@ -607,26 +607,6 @@ const PropertyEditModal = ({ open, propertyId, onClose, onSaved }) => {
                   onChange={(e) => setF("pincode", e.target.value)}
                 />
               </div>
-              <div className="lp-field">
-                <label htmlFor="pe-lat">Latitude</label>
-                <input
-                  id="pe-lat"
-                  type="text"
-                  value={form.latitude}
-                  onChange={(e) => setF("latitude", e.target.value)}
-                  placeholder="optional"
-                />
-              </div>
-              <div className="lp-field">
-                <label htmlFor="pe-lng">Longitude</label>
-                <input
-                  id="pe-lng"
-                  type="text"
-                  value={form.longitude}
-                  onChange={(e) => setF("longitude", e.target.value)}
-                  placeholder="optional"
-                />
-              </div>
             </div>
           </Section>
 
