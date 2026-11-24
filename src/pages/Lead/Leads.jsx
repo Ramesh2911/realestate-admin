@@ -13,6 +13,11 @@ import {
   FaUsers,
   FaBuilding,
   FaClock,
+  FaNewspaper,
+  FaMoneyBillWave,
+  FaFeatherAlt,
+  FaLayerGroup,
+  FaListUl,
 } from "react-icons/fa";
 import {
   getLeadsApi,
@@ -20,6 +25,11 @@ import {
   updateLeadApi,
   deleteLeadApi,
   getAllInterestsApi,
+  getNewsletterApi,
+  deleteNewsletterApi,
+  getLoansApi,
+  getAllLeadsApi,
+  getPropertyByIdApi,
 } from "../../services/auth.api";
 import {
   ListHero,
@@ -49,6 +59,42 @@ const REQ_EMPTY = {
 const INT_EMPTY = {
   title: "No interests found",
   sub: "Buyer inquiries on properties will appear here.",
+};
+
+const NEWS_EMPTY = {
+  title: "No subscribers yet",
+  sub: "Popup and in-page newsletter signups will appear here.",
+};
+
+const LOAN_EMPTY = {
+  title: "No loan applications",
+  sub: "Home loan inquiries from the website will appear here.",
+};
+
+const FOOTER_EMPTY = {
+  title: "No footer subscribers",
+  sub: "Emails captured from the footer newsletter form will appear here.",
+};
+
+const PROP_VIEW_EMPTY = {
+  title: "No property-linked leads",
+  sub: "Leads tied to a listing will be grouped here.",
+};
+
+// Newsletter tab shows every non-footer source (popup, app, website);
+// Footer Subscribers tab shows only the footer newsletter form.
+const isFooterSub = (s) => String(s?.source || "website").toLowerCase() === "footer";
+
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+const API_ORIGIN = API_BASE.replace(/\/api\/v\d+\/?$/, "");
+
+const resolveImageUrl = (src) => {
+  if (!src) return "";
+  const value = String(src).trim();
+  if (!value) return "";
+  if (/^(https?:)?\/\//i.test(value) || /^(data|blob):/i.test(value)) return value;
+  return `${API_ORIGIN}${value.startsWith("/") ? "" : "/"}${value}`;
 };
 
 const STATUS_TONE = { New: "blue", Contacted: "amber", Converted: "green", Lost: "red" };
@@ -90,9 +136,14 @@ const toNum = (v) => (v === "" || v === null || v === undefined ? null : Number(
 
 const Leads = () => {
   const [tab, setTab] = useState("req");
+  const [view, setView] = useState("account"); // "account" | "property" — point 17
   const [reqs, setReqs] = useState([]);
   const [interests, setInterests] = useState([]);
+  const [news, setNews] = useState([]);
+  const [loans, setLoans] = useState([]);
+  const [propGroups, setPropGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [propLoading, setPropLoading] = useState(false);
   const [error, setError] = useState(null);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
@@ -105,13 +156,16 @@ const Leads = () => {
   const [delTarget, setDelTarget] = useState(null);
   const [delBusy, setDelBusy] = useState(false);
   const [viewInt, setViewInt] = useState(null);
+  const [propModal, setPropModal] = useState(null); // { loading, data, error }
   const dq = useDebounced(q, 300);
 
   const loadData = useCallback(async () => {
     setError(null);
-    const [a, b] = await Promise.allSettled([
+    const [a, b, c, d] = await Promise.allSettled([
       getLeadsApi(),
       getAllInterestsApi(),
+      getNewsletterApi(),
+      getLoansApi(),
     ]);
     if (a.status === "fulfilled") {
       const d = a.value?.data?.data || a.value?.data || [];
@@ -123,22 +177,54 @@ const Leads = () => {
       const d = b.value?.data?.data || b.value?.data || [];
       setInterests(Array.isArray(d) ? d : []);
     }
+    if (c.status === "fulfilled") {
+      const d = c.value?.data?.data || c.value?.data || [];
+      setNews(Array.isArray(d) ? d : []);
+    }
+    if (d.status === "fulfilled") {
+      const d = d.value?.data?.data || d.value?.data || [];
+      setLoans(Array.isArray(d) ? d : []);
+    }
     setLoading(false);
+  }, []);
+
+  const loadPropertyView = useCallback(async () => {
+    setPropLoading(true);
+    try {
+      const res = await getAllLeadsApi("property");
+      const d = res.data?.data || res.data || [];
+      setPropGroups(Array.isArray(d) ? d : []);
+    } catch {
+      setPropGroups([]);
+    } finally {
+      setPropLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    if (view === "property") loadPropertyView();
+  }, [view, loadPropertyView]);
+
   const handleRefresh = () => {
     setLoading(true);
     loadData();
+    if (view === "property") loadPropertyView();
   };
 
   const switchTab = (t) => {
     setTab(t);
     setPage(1);
     setStatus("all");
+  };
+
+  const switchView = (v) => {
+    setView(v);
+    setPage(1);
+    setQ("");
   };
 
   const onSearch = (v) => {
@@ -224,14 +310,35 @@ const Leads = () => {
     if (!delTarget) return;
     setDelBusy(true);
     try {
-      await deleteLeadApi(delTarget.id);
+      if (delTarget.__kind === "newsletter") {
+        await deleteNewsletterApi(delTarget.id);
+        toast.success("Subscriber removed.");
+      } else {
+        await deleteLeadApi(delTarget.id);
+        toast.success("Requirement deleted.");
+      }
       setDelTarget(null);
-      toast.success("Requirement deleted.");
       await loadData();
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to delete requirement.");
+      toast.error(err?.response?.data?.message || "Failed to delete record.");
     } finally {
       setDelBusy(false);
+    }
+  };
+
+  const openPropPopup = async (row) => {
+    if (!row?.property_id) return;
+    setPropModal({ loading: true, data: null, error: null });
+    try {
+      const res = await getPropertyByIdApi(row.property_id);
+      const p = res.data?.data || res.data || null;
+      setPropModal({ loading: false, data: p, error: null });
+    } catch (err) {
+      setPropModal({
+        loading: false,
+        data: null,
+        error: err?.response?.data?.message || "Unable to load property details.",
+      });
     }
   };
 
@@ -265,7 +372,53 @@ const Leads = () => {
     );
   }, [interests, dq]);
 
-  const filtered = tab === "req" ? filteredReqs : filteredInts;
+  const footerNews = useMemo(() => news.filter(isFooterSub), [news]);
+  const popupNews = useMemo(() => news.filter((s) => !isFooterSub(s)), [news]);
+
+  const filteredNews = useMemo(() => {
+    const s = dq.trim().toLowerCase();
+    const base = tab === "footer" ? footerNews : popupNews;
+    if (!s) return base;
+    return base.filter((r) =>
+      [r.email, r.source, `ns-${r.id}`, String(r.id)]
+        .filter(Boolean)
+        .some((f) => String(f).toLowerCase().includes(s))
+    );
+  }, [tab, footerNews, popupNews, dq]);
+
+  const filteredLoans = useMemo(() => {
+    const s = dq.trim().toLowerCase();
+    if (!s) return loans;
+    return loans.filter((r) =>
+      [r.name, r.email, r.phone, `ln-${r.id}`, String(r.id)]
+        .filter(Boolean)
+        .some((f) => String(f).toLowerCase().includes(s))
+    );
+  }, [loans, dq]);
+
+  const filteredGroups = useMemo(() => {
+    const s = dq.trim().toLowerCase();
+    if (!s) return propGroups;
+    return propGroups
+      .map((g) => ({
+        ...g,
+        leads: (g.leads || []).filter((l) =>
+          [l.name, l.email, l.phone, l.title, l.city, String(l.id)]
+            .filter(Boolean)
+            .some((f) => String(f).toLowerCase().includes(s))
+        ),
+      }))
+      .filter((g) => (g.leads || []).length > 0);
+  }, [propGroups, dq]);
+
+  const filtered =
+    tab === "req"
+      ? filteredReqs
+      : tab === "int"
+        ? filteredInts
+        : tab === "loan"
+          ? filteredLoans
+          : filteredNews;
 
   const reqStats = useMemo(() => {
     const total = reqs.length;
@@ -298,7 +451,76 @@ const Leads = () => {
     ];
   }, [interests]);
 
-  const stats = tab === "req" ? reqStats : intStats;
+  const newsStats = useMemo(() => {
+    const total = popupNews.length;
+    const foot = footerNews.length;
+    const week = news.filter((i) => {
+      const t = new Date(i.created_at || 0).getTime();
+      return Number.isFinite(t) && Date.now() - t < 7 * 86400000;
+    }).length;
+    return [
+      { label: "Total Subscribers", value: fmtNum(news.length), icon: FaNewspaper, tone: "blue" },
+      { label: "Popup / In-Page", value: fmtNum(total), sub: "lead popup & home card", icon: FaBolt, tone: "green" },
+      { label: "Footer Form", value: fmtNum(foot), sub: "footer newsletter bar", icon: FaFeatherAlt, tone: "slate" },
+      { label: "Last 7 Days", value: fmtNum(week), sub: "recent signups", icon: FaClock, tone: "amber" },
+    ];
+  }, [news, popupNews, footerNews]);
+
+  const loanStats = useMemo(() => {
+    const total = loans.length;
+    const withEmail = loans.filter((l) => l.email).length;
+    const week = loans.filter((i) => {
+      const t = new Date(i.created_at || 0).getTime();
+      return Number.isFinite(t) && Date.now() - t < 7 * 86400000;
+    }).length;
+    const amt = loans.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+    return [
+      { label: "Loan Applications", value: fmtNum(total), icon: FaMoneyBillWave, tone: "blue" },
+      { label: "Requested Volume", value: `₹${formatCr(amt)}`, sub: "sum of all asks", icon: FaBolt, tone: "green" },
+      { label: "With Email", value: fmtNum(withEmail), sub: "reachable by mail", icon: FaUsers, tone: "slate" },
+      { label: "Last 7 Days", value: fmtNum(week), sub: "recent applications", icon: FaClock, tone: "amber" },
+    ];
+  }, [loans]);
+
+  const footerStats = useMemo(() => {
+    const total = footerNews.length;
+    const week = footerNews.filter((i) => {
+      const t = new Date(i.created_at || 0).getTime();
+      return Number.isFinite(t) && Date.now() - t < 7 * 86400000;
+    }).length;
+    const dupes = total - new Set(footerNews.map((n) => String(n.email || "").toLowerCase())).size;
+    return [
+      { label: "Footer Subscribers", value: fmtNum(total), icon: FaFeatherAlt, tone: "blue" },
+      { label: "Last 7 Days", value: fmtNum(week), sub: "recent signups", icon: FaClock, tone: "amber" },
+      { label: "Unique Emails", value: fmtNum(total - Math.max(0, dupes)), sub: "deduplicated", icon: FaUsers, tone: "green" },
+      { label: "Duplicates", value: fmtNum(Math.max(0, dupes)), sub: "same email twice", icon: FaLayerGroup, tone: "slate" },
+    ];
+  }, [footerNews]);
+
+  const stats =
+    tab === "req"
+      ? reqStats
+      : tab === "int"
+        ? intStats
+        : tab === "loan"
+          ? loanStats
+          : tab === "footer"
+            ? footerStats
+            : newsStats;
+
+  const propViewStats = useMemo(() => {
+    const groups = propGroups.length;
+    const total = propGroups.reduce((s, g) => s + (g.leads || []).length, 0);
+    const linked = propGroups.filter((g) => g.property_id).length;
+    const unassigned = total - propGroups.filter((g) => g.property_id)
+      .reduce((s, g) => s + (g.leads || []).length, 0);
+    return [
+      { label: "Property Groups", value: fmtNum(groups), icon: FaLayerGroup, tone: "blue" },
+      { label: "Linked Listings", value: fmtNum(linked), sub: "with a property ID", icon: FaBuilding, tone: "green" },
+      { label: "Total Leads", value: fmtNum(total), sub: "across all groups", icon: FaBullseye, tone: "slate" },
+      { label: "Unassigned", value: fmtNum(Math.max(0, unassigned)), sub: "no property linked", icon: FaClock, tone: "amber" },
+    ];
+  }, [propGroups]);
 
   const pills = useMemo(() => {
     const count = (s) => reqs.filter((r) => (r.status || "New") === s).length;
@@ -443,7 +665,30 @@ const Leads = () => {
       cell: (r) => (
         <div className="lp-user" style={{ justifyContent: "space-between" }}>
           <div style={{ minWidth: 0 }}>
-            <div className="lp-user-name">{r.property_title || "—"}</div>
+            <button
+              type="button"
+              className="lp-link"
+              title={r.property_id ? "View property details" : "No linked property"}
+              disabled={!r.property_id}
+              onClick={() => openPropPopup(r)}
+              style={{
+                background: "none",
+                border: 0,
+                padding: 0,
+                font: "inherit",
+                color: r.property_id ? "#1E4C8C" : undefined,
+                textDecoration: r.property_id ? "underline" : "none",
+                cursor: r.property_id ? "pointer" : "default",
+                textAlign: "left",
+                maxWidth: 180,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                display: "block",
+              }}
+            >
+              {r.property_title || "—"}
+            </button>
             <div className="lp-cell-sub">
               {[r.city, r.address].filter(Boolean).join(" · ") || "Location N/A"}
             </div>
@@ -514,7 +759,115 @@ const Leads = () => {
     },
   ];
 
-  const columns = tab === "req" ? reqColumns : intColumns;
+  const newsColumns = [
+    {
+      key: "id",
+      label: "ID",
+      sortable: true,
+      width: "90px",
+      cell: (r) => <span className="lp-id">#NS-{r.id}</span>,
+    },
+    {
+      key: "email",
+      label: "Email",
+      sortable: true,
+      cell: (r) => (
+        <div className="lp-user">
+          <Avatar name={r.email} tone="alt" />
+          <div style={{ minWidth: 0 }}>
+            <div className="lp-user-name">{r.email || "—"}</div>
+            <div className="lp-cell-sub">
+              {tab === "footer" ? "Footer newsletter form" : "Popup / in-page signup"}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "source",
+      label: "Source",
+      sortable: true,
+      cell: (r) => (
+        <StatusPill tone={isFooterSub(r) ? "amber" : "green"}>
+          {String(r.source || "website").toUpperCase()}
+        </StatusPill>
+      ),
+    },
+    {
+      key: "created_at",
+      label: "Subscribed",
+      sortable: true,
+      sortValue: (r) => new Date(r.created_at || 0).getTime() || 0,
+      width: "115px",
+      cell: (r) => <span className="lp-muted">{fmtWhen(r.created_at)}</span>,
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      cell: (r) => (
+        <div className="lp-actions-cell">
+          <button
+            type="button"
+            className="lp-icon-btn tone-red"
+            title="Remove subscriber"
+            aria-label={`Remove subscriber ${r.id}`}
+            onClick={() => setDelTarget({ ...r, __kind: "newsletter" })}
+          >
+            <FaTrash />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const loanColumns = [
+    {
+      key: "id",
+      label: "ID",
+      sortable: true,
+      width: "90px",
+      cell: (r) => <span className="lp-id">#LN-{r.id}</span>,
+    },
+    {
+      key: "name",
+      label: "Applicant",
+      sortable: true,
+      cell: (r) => (
+        <div className="lp-user">
+          <Avatar name={r.name} />
+          <div style={{ minWidth: 0 }}>
+            <div className="lp-user-name">{r.name || "—"}</div>
+            <div className="lp-cell-sub">{r.email || r.phone || "No contact"}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "phone",
+      label: "Phone",
+      sortable: true,
+      cell: (r) => <span className="lp-muted">{r.phone || "—"}</span>,
+    },
+    {
+      key: "amount",
+      label: "Loan Amount",
+      sortable: true,
+      sortValue: (r) => Number(r.amount) || 0,
+      align: "right",
+      cell: (r) => <span className="lp-money">₹{fmtNum(Number(r.amount) || 0)}</span>,
+    },
+    {
+      key: "created_at",
+      label: "Applied",
+      sortable: true,
+      sortValue: (r) => new Date(r.created_at || 0).getTime() || 0,
+      width: "115px",
+      cell: (r) => <span className="lp-muted">{fmtWhen(r.created_at)}</span>,
+    },
+  ];
+
+  const TAB_COLUMNS = { req: reqColumns, int: intColumns, news: newsColumns, footer: newsColumns, loan: loanColumns };
+  const columns = TAB_COLUMNS[tab] || reqColumns;
 
   const pages = Math.max(1, Math.ceil(filtered.length / perPage));
   const cur = Math.min(page, pages);
@@ -539,7 +892,7 @@ const Leads = () => {
         { label: "Status", value: (r) => r.status || "New" },
         { label: "Created", value: (r) => r.created_at || "" },
       ]);
-    } else {
+    } else if (tab === "int") {
       downloadCsv(`interests-${day}.csv`, filtered, [
         { label: "Interest ID", value: (r) => `IN-${r.id}` },
         { label: "Buyer", value: (r) => r.buyer_name || "" },
@@ -552,37 +905,82 @@ const Leads = () => {
         { label: "Message", value: (r) => r.message || "" },
         { label: "Received", value: (r) => r.created_at || "" },
       ]);
+    } else if (tab === "loan") {
+      downloadCsv(`loan-applications-${day}.csv`, filtered, [
+        { label: "Loan ID", value: (r) => `LN-${r.id}` },
+        { label: "Name", value: (r) => r.name || "" },
+        { label: "Phone", value: (r) => r.phone || "" },
+        { label: "Email", value: (r) => r.email || "" },
+        { label: "Amount", value: (r) => r.amount ?? "" },
+        { label: "Created", value: (r) => r.created_at || "" },
+      ]);
+    } else {
+      const name = tab === "footer" ? `footer-subscribers-${day}.csv` : `newsletter-subscribers-${day}.csv`;
+      downloadCsv(name, filtered, [
+        { label: "ID", value: (r) => `NS-${r.id}` },
+        { label: "Email", value: (r) => r.email || "" },
+        { label: "Source", value: (r) => r.source || "" },
+        { label: "Subscribed", value: (r) => r.created_at || "" },
+      ]);
     }
   };
 
-  const filtersActive = q !== "" || (tab === "req" && status !== "all");
+  const filtersActive =
+    q !== "" || (tab === "req" && status !== "all");
+
+  const TAB_DEFS = [
+    { key: "req", label: "Post Requirement", count: reqs.length },
+    { key: "int", label: "Property Enquiry", count: interests.length },
+    { key: "news", label: "Newsletter", count: popupNews.length },
+    { key: "loan", label: "Loan", count: loans.length },
+    { key: "footer", label: "Footer Subscribers", count: footerNews.length },
+  ];
+
+  const TAB_META = {
+    req: { title: "Buyer Requirements", empty: REQ_EMPTY, placeholder: "Search client, title, city or lead ID…" },
+    int: { title: "Property Enquiries", empty: INT_EMPTY, placeholder: "Search buyer, property, city or message…" },
+    news: { title: "Newsletter Subscribers", empty: NEWS_EMPTY, placeholder: "Search email or source…" },
+    loan: { title: "Loan Applications", empty: LOAN_EMPTY, placeholder: "Search applicant, phone or email…" },
+    footer: { title: "Footer Subscribers", empty: FOOTER_EMPTY, placeholder: "Search footer email…" },
+  };
+  const meta = TAB_META[tab] || TAB_META.req;
+  const totalCount =
+    tab === "req"
+      ? reqs.length
+      : tab === "int"
+        ? interests.length
+        : tab === "loan"
+          ? loans.length
+          : tab === "footer"
+            ? footerNews.length
+            : popupNews.length;
 
   return (
     <div className="lp-page">
       <ListHero
         eyebrow="Lead Engine"
-        sub="Buyer requirements with full pipeline control, plus live property interest signals."
+        sub="All inbound leads — requirements, enquiries, newsletters and loans — with account-wise and property-wise views."
         actions={
           <>
             <button
               type="button"
               className="lp-btn lp-btn-ghost"
               onClick={handleRefresh}
-              disabled={loading}
+              disabled={loading || propLoading}
             >
-              <FaSyncAlt className={loading ? "lp-spin" : ""} size={13} />
+              <FaSyncAlt className={loading || propLoading ? "lp-spin" : ""} size={13} />
               Refresh
             </button>
             <button
               type="button"
               className="lp-btn lp-btn-ghost"
               onClick={exportCsv}
-              disabled={loading || !!error}
+              disabled={loading || !!error || view === "property"}
             >
               <FaDownload size={13} />
               Export CSV
             </button>
-            {tab === "req" && (
+            {tab === "req" && view === "account" && (
               <button
                 type="button"
                 className="lp-btn lp-btn-primary"
@@ -598,42 +996,59 @@ const Leads = () => {
         Lead <span className="lp-accent">Pipeline</span>
       </ListHero>
 
-      <div className="lp-tabs" role="tablist" aria-label="Lead views">
+      {/* Account-wise / Property-wise toggle — point 17 */}
+      <div className="lp-view-toggle" role="group" aria-label="Lead grouping view">
         <button
           type="button"
-          role="tab"
-          aria-selected={tab === "req"}
-          className={`lp-tab ${tab === "req" ? "active" : ""}`}
-          onClick={() => switchTab("req")}
+          className={`lp-view-btn ${view === "account" ? "active" : ""}`}
+          onClick={() => switchView("account")}
+          aria-pressed={view === "account"}
         >
-          Requirements
-          <span className="lp-tab-count">{fmtNum(reqs.length)}</span>
+          <FaListUl size={12} />
+          Account-wise
         </button>
         <button
           type="button"
-          role="tab"
-          aria-selected={tab === "int"}
-          className={`lp-tab ${tab === "int" ? "active" : ""}`}
-          onClick={() => switchTab("int")}
+          className={`lp-view-btn ${view === "property" ? "active" : ""}`}
+          onClick={() => switchView("property")}
+          aria-pressed={view === "property"}
         >
-          Interests
-          <span className="lp-tab-count">{fmtNum(interests.length)}</span>
+          <FaLayerGroup size={12} />
+          Property-wise
         </button>
       </div>
 
-      <StatGrid stats={stats} />
+      {view === "account" && (
+        <div className="lp-tabs" role="tablist" aria-label="Lead views">
+          {TAB_DEFS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.key}
+              className={`lp-tab ${tab === t.key ? "active" : ""}`}
+              onClick={() => switchTab(t.key)}
+            >
+              {t.label}
+              <span className="lp-tab-count">{fmtNum(t.count)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <StatGrid stats={view === "property" ? propViewStats : stats} />
 
       <Toolbar
         search={q}
         onSearch={onSearch}
         placeholder={
-          tab === "req"
-            ? "Search client, title, city or lead ID…"
-            : "Search buyer, property, city or message…"
+          view === "property"
+            ? "Search name, email, title or city in grouped leads…"
+            : meta.placeholder
         }
-        pills={tab === "req" ? pills : undefined}
-        activePill={tab === "req" ? status : undefined}
-        onPill={tab === "req" ? onStatus : undefined}
+        pills={view === "account" && tab === "req" ? pills : undefined}
+        activePill={view === "account" && tab === "req" ? status : undefined}
+        onPill={view === "account" && tab === "req" ? onStatus : undefined}
         activeCount={filtersActive ? "Filters active" : ""}
         onClear={
           filtersActive
@@ -646,46 +1061,117 @@ const Leads = () => {
         }
       />
 
-      <div className="lp-panel">
-        <div className="lp-panel-head">
-          <div>
-            <div className="lp-panel-title">
-              {tab === "req" ? "Buyer Requirements" : "Property Interests"}
-            </div>
-            <div className="lp-panel-sub">
-              {loading
-                ? "Loading…"
-                : `${fmtNum(filtered.length)} of ${fmtNum(
-                    (tab === "req" ? reqs : interests).length
-                  )} records`}
+      {view === "property" ? (
+        <div className="lp-panel">
+          <div className="lp-panel-head">
+            <div>
+              <div className="lp-panel-title">Leads grouped by property</div>
+              <div className="lp-panel-sub">
+                {propLoading
+                  ? "Loading…"
+                  : `${fmtNum(filteredGroups.length)} property group${filteredGroups.length === 1 ? "" : "s"}`}
+              </div>
             </div>
           </div>
+
+          {propLoading ? (
+            <div className="lp-state">
+              <div className="lp-state-icon">
+                <FaSyncAlt className="lp-spin" />
+              </div>
+              <h3>Loading property groups…</h3>
+            </div>
+          ) : filteredGroups.length === 0 ? (
+            <div className="lp-state">
+              <div className="lp-state-icon">
+                <FaBuilding />
+              </div>
+              <h3>{PROP_VIEW_EMPTY.title}</h3>
+              <p>{PROP_VIEW_EMPTY.sub}</p>
+            </div>
+          ) : (
+            <div className="lp-prop-groups">
+              {filteredGroups.map((g) => (
+                <div key={g.group} className="lp-prop-group">
+                  <div className="lp-prop-group-head">
+                    <div className="lp-prop-group-title">
+                      {g.property_id ? `Property #${g.property_id}` : "Unassigned leads"}
+                    </div>
+                    <span className="lp-tab-count">{fmtNum((g.leads || []).length)}</span>
+                  </div>
+                  <div className="lp-prop-group-rows">
+                    {(g.leads || []).map((l) => (
+                      <div key={`${l.lead_type}-${l.id}`} className="lp-prop-lead-row">
+                        <StatusPill tone={l.lead_type === "enquiry" ? "blue" : l.lead_type === "loan" ? "amber" : l.lead_type === "newsletter" ? "green" : "slate"}>
+                          {l.lead_type}
+                        </StatusPill>
+                        <div className="lp-prop-lead-main">
+                          <div className="lp-user-name">{l.name || l.email || "—"}</div>
+                          <div className="lp-cell-sub">
+                            {[l.title, l.city].filter(Boolean).join(" · ") || "—"}
+                          </div>
+                        </div>
+                        <div className="lp-cell-sub">{l.phone || l.email || ""}</div>
+                        <span className="lp-muted">{fmtWhen(l.created_at)}</span>
+                        {l.lead_type === "enquiry" && l.property_id ? (
+                          <button
+                            type="button"
+                            className="lp-icon-btn tone-blue"
+                            title="View property"
+                            aria-label={`View property ${l.property_id}`}
+                            onClick={() => openPropPopup(l)}
+                          >
+                            <FaEye />
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+      ) : (
+        <>
+          <div className="lp-panel">
+            <div className="lp-panel-head">
+              <div>
+                <div className="lp-panel-title">{meta.title}</div>
+                <div className="lp-panel-sub">
+                  {loading
+                    ? "Loading…"
+                    : `${fmtNum(filtered.length)} of ${fmtNum(totalCount)} records`}
+                </div>
+              </div>
+            </div>
 
-        <ListTable
-          columns={columns}
-          rows={slice}
-          rowKey={(r) => r.id}
-          loading={loading}
-          error={error}
-          onRetry={handleRefresh}
-          empty={tab === "req" ? REQ_EMPTY : INT_EMPTY}
-          initialSort={{ key: "created_at", dir: "desc" }}
-        />
+            <ListTable
+              columns={columns}
+              rows={slice}
+              rowKey={(r) => r.id}
+              loading={loading}
+              error={error}
+              onRetry={handleRefresh}
+              empty={meta.empty}
+              initialSort={{ key: "created_at", dir: "desc" }}
+            />
 
-        {!loading && !error && filtered.length > 0 && (
-          <Pager
-            total={filtered.length}
-            page={cur}
-            onPage={setPage}
-            perPage={perPage}
-            onPerPage={(n) => {
-              setPerPage(n);
-              setPage(1);
-            }}
-          />
-        )}
-      </div>
+            {!loading && !error && filtered.length > 0 && (
+              <Pager
+                total={filtered.length}
+                page={cur}
+                onPage={setPage}
+                perPage={perPage}
+                onPerPage={(n) => {
+                  setPerPage(n);
+                  setPage(1);
+                }}
+              />
+            )}
+          </div>
+        </>
+      )}
 
       <Modal
         open={formOpen}
@@ -919,12 +1405,16 @@ const Leads = () => {
 
       <Confirm
         open={!!delTarget}
-        title="Delete this requirement?"
+        title={delTarget?.__kind === "newsletter" ? "Remove this subscriber?" : "Delete this requirement?"}
         message={
           delTarget
-            ? `#${delTarget.name || "this client"} — “${
-                delTarget.title || "Untitled requirement"
-              }” will be removed from the pipeline. This cannot be undone.`
+            ? delTarget.__kind === "newsletter"
+              ? `${delTarget.email || "This email"} will be removed from the ${
+                  isFooterSub(delTarget) ? "footer" : "newsletter"
+                } list. This cannot be undone.`
+              : `#${delTarget.name || "this client"} — “${
+                  delTarget.title || "Untitled requirement"
+                }” will be removed from the pipeline. This cannot be undone.`
             : ""
         }
         confirmLabel="Delete"
@@ -995,6 +1485,127 @@ const Leads = () => {
             </div>
           </>
         )}
+      </Modal>
+
+      {/* Property details popup — opened from the enquiry property hyperlink */}
+      <Modal
+        open={!!propModal}
+        onClose={() => setPropModal(null)}
+        size="lg"
+        title="Property Details"
+        sub={propModal?.data ? `Listing #${propModal.data.id}` : ""}
+      >
+        {propModal?.loading ? (
+          <div className="lp-state">
+            <div className="lp-state-icon">
+              <FaSyncAlt className="lp-spin" />
+            </div>
+            <h3>Loading property…</h3>
+          </div>
+        ) : propModal?.error ? (
+          <div className="lp-state error">
+            <h3>Unable to load property</h3>
+            <p>{propModal.error}</p>
+          </div>
+        ) : propModal?.data ? (
+          <>
+            <div className="lp-profile-hero">
+              {Array.isArray(propModal.data.images) && propModal.data.images.length > 0 ? (
+                <img
+                  src={resolveImageUrl(propModal.data.images[0])}
+                  alt={propModal.data.property_title || "Property"}
+                  style={{
+                    width: "100%",
+                    maxHeight: 220,
+                    objectFit: "cover",
+                    borderRadius: 12,
+                    marginBottom: 10,
+                  }}
+                />
+              ) : null}
+              <div className="lp-profile-name">
+                {propModal.data.property_title || "Untitled Property"}
+              </div>
+              <div className="lp-profile-mail">
+                {[propModal.data.address, propModal.data.city, propModal.data.state]
+                  .filter(Boolean)
+                  .join(", ") || "Location N/A"}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <StatusPill tone={propModal.data.property_status === "Approved" ? "green" : "amber"}>
+                  {propModal.data.property_status || "Pending"}
+                </StatusPill>
+              </div>
+            </div>
+            <div className="lp-profile-grid">
+              <div className="lp-info-card">
+                <div className="k">Price</div>
+                <div className="v">
+                  {propModal.data.price
+                    ? `₹${fmtNum(parseMoney(propModal.data.price))}`
+                    : "—"}
+                </div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Type</div>
+                <div className="v">{propModal.data.property_type || "—"}</div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Bedrooms / Baths</div>
+                <div className="v">
+                  {[propModal.data.bedrooms, propModal.data.bathrooms]
+                    .filter((v) => v !== null && v !== undefined && v !== "")
+                    .join(" / ") || "—"}
+                </div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Area</div>
+                <div className="v">
+                  {propModal.data.area_sqft || propModal.data.carpet_area
+                    ? `${propModal.data.area_sqft || propModal.data.carpet_area} sq ft`
+                    : "—"}
+                </div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Posted By</div>
+                <div className="v">
+                  {propModal.data.poster_name || "—"}
+                  {propModal.data.poster_phone ? ` · ${propModal.data.poster_phone}` : ""}
+                </div>
+              </div>
+              <div className="lp-info-card">
+                <div className="k">Featured</div>
+                <div className="v">
+                  {Number(propModal.data.is_featured) ? "Yes" : "No"}
+                </div>
+              </div>
+            </div>
+            {propModal.data.description ? (
+              <div className="lp-desc">
+                <div className="k">Description</div>
+                <p>{propModal.data.description}</p>
+              </div>
+            ) : null}
+            {Array.isArray(propModal.data.images) && propModal.data.images.length > 1 ? (
+              <div className="lp-desc">
+                <div className="k">Gallery ({propModal.data.images.length})</div>
+                <div className="lp-detail-gallery">
+                  {propModal.data.images.map((url, i) => (
+                    <a
+                      key={`pg-${i}`}
+                      href={resolveImageUrl(url)}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Open full image"
+                    >
+                      <img src={resolveImageUrl(url)} alt={`Gallery ${i + 1}`} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </>
+        ) : null}
       </Modal>
     </div>
   );

@@ -43,10 +43,29 @@ export const LEADS = {
   REQUIREMENTS: "/leads/requirements",
   REQUIREMENT_BY_ID: (id) => `/leads/requirements/${id}`,
   INTERESTS: "/leads/interests",
+  ALL: "/leads/all",
+  NEWSLETTER: "/leads/newsletter",
+  NEWSLETTER_BY_ID: (id) => `/leads/newsletter/${id}`,
 };
 
 export const LOANS = {
   LIST: "/loans",
+};
+
+export const CONTACT = {
+  LIST: "/contact",
+};
+
+export const PARTNERS = {
+  LIST: "/partners",
+  ADMIN: "/partners/admin",
+  BY_ID: (id) => `/partners/${id}`,
+};
+
+export const BANNERS = {
+  LIST: "/banners",
+  ADMIN: "/banners/admin",
+  BY_ID: (id) => `/banners/${id}`,
 };
 
 export const NOTIFICATIONS = {

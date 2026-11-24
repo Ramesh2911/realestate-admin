@@ -7,6 +7,9 @@ import {
   DASHBOARD,
   LEADS,
   LOANS,
+  CONTACT,
+  PARTNERS,
+  BANNERS,
   NOTIFICATIONS,
   SEO,
   SETTINGS,
@@ -55,8 +58,44 @@ export const updateLeadApi = (id, payload) =>
 export const deleteLeadApi = (id) => API.delete(LEADS.REQUIREMENT_BY_ID(id));
 export const getAllInterestsApi = () => API.get(LEADS.INTERESTS);
 
+// Combined lead feed — ?view=account|property
+export const getAllLeadsApi = (view = "account") =>
+  API.get(LEADS.ALL, { params: { view } });
+
+// Newsletter subscribers
+export const getNewsletterApi = () => API.get(LEADS.NEWSLETTER);
+export const deleteNewsletterApi = (id) =>
+  API.delete(LEADS.NEWSLETTER_BY_ID(id));
+
+// Contact / inquiry inbox (footer + contact form)
+export const getContactMessagesApi = () => API.get(CONTACT.LIST);
+
 // Loan applications (view-only list)
 export const getLoansApi = () => API.get(LOANS.LIST);
+
+// Partner developers (dynamic logo marquee)
+export const getPartnersAdminApi = () => API.get(PARTNERS.ADMIN);
+export const createPartnerApi = (formData) =>
+  API.post(PARTNERS.LIST, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const updatePartnerApi = (id, formData) =>
+  API.put(PARTNERS.BY_ID(id), formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const deletePartnerApi = (id) => API.delete(PARTNERS.BY_ID(id));
+
+// Home hero banners
+export const getBannersAdminApi = () => API.get(BANNERS.ADMIN);
+export const createBannerApi = (formData) =>
+  API.post(BANNERS.LIST, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const updateBannerApi = (id, formData) =>
+  API.put(BANNERS.BY_ID(id), formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const deleteBannerApi = (id) => API.delete(BANNERS.BY_ID(id));
 
 export const deletePropertyApi = (id) => API.delete(PROPERTY.DELETE(id));
 

@@ -435,6 +435,8 @@ const PlatformPanel = () => {
     platform_name: "",
     revenue_percent: "",
     token_hours: "",
+    newsletter_heading: "",
+    popup_heading: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -462,11 +464,17 @@ const PlatformPanel = () => {
     }
     setSaving(true);
     try {
-      const res = await updateSettingsApi({
+      const payload = {
         platform_name: form.platform_name.trim(),
         revenue_percent: form.revenue_percent,
         token_hours: form.token_hours,
-      });
+      };
+      // Copy strings: only send when non-empty (server enforces 3-160 chars)
+      const news = form.newsletter_heading.trim();
+      const popup = form.popup_heading.trim();
+      if (news) payload.newsletter_heading = news;
+      if (popup) payload.popup_heading = popup;
+      const res = await updateSettingsApi(payload);
       const data = res.data?.data || res.data || {};
       setForm((f) => ({ ...f, ...data }));
       toast.success("Platform settings saved.");
@@ -488,7 +496,7 @@ const PlatformPanel = () => {
         <div>
           <div className="st-card-title">Platform</div>
           <div className="st-card-desc">
-            Global brand, revenue and session parameters
+            Global brand, revenue, session and site copy parameters
           </div>
         </div>
       </div>
@@ -535,11 +543,43 @@ const PlatformPanel = () => {
               min="1"
               max="720"
               value={form.token_hours}
-              onChange={(e) => set("token_hours")(e.target.value)}
+              onChange={(e) => set("token_hours", e.target.value)}
               readOnly={!isSuperAdmin}
               disabled={!isSuperAdmin}
               className={!isSuperAdmin ? "st-readonly" : ""}
             />
+          </div>
+          <div className="lp-field full">
+            <label htmlFor="pf-news">Newsletter heading</label>
+            <input
+              id="pf-news"
+              type="text"
+              value={form.newsletter_heading}
+              onChange={(e) => set("newsletter_heading", e.target.value)}
+              placeholder="e.g. Get A Discount"
+              readOnly={!isSuperAdmin}
+              disabled={!isSuperAdmin}
+              className={!isSuperAdmin ? "st-readonly" : ""}
+            />
+            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
+              Shown above the footer newsletter form on the website.
+            </div>
+          </div>
+          <div className="lp-field full">
+            <label htmlFor="pf-popup">Lead popup heading</label>
+            <input
+              id="pf-popup"
+              type="text"
+              value={form.popup_heading}
+              onChange={(e) => set("popup_heading", e.target.value)}
+              placeholder="e.g. Subscribe to our Newsletter"
+              readOnly={!isSuperAdmin}
+              disabled={!isSuperAdmin}
+              className={!isSuperAdmin ? "st-readonly" : ""}
+            />
+            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
+              Shown in the website and app lead popup newsletter block.
+            </div>
           </div>
         </div>
 

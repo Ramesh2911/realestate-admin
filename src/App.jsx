@@ -33,6 +33,8 @@ import SEOManagement from "./pages/SEO/SEOManagement";
 import FooterManager from "./pages/Footer/FooterManager";
 import PageContent from "./pages/Content/PageContent";
 import BlogManager from "./pages/Blog/BlogManager";
+import Partners from "./pages/Partner/Partners";
+import Banners from "./pages/Banner/Banners";
 
 
 
@@ -83,6 +85,8 @@ function App() {
           <Route path="/footer" element={<FooterManager />} />
           <Route path="/page-content" element={<PageContent />} />
           <Route path="/blog-posts" element={<BlogManager />} />
+          <Route path="/partners" element={<Partners />} />
+          <Route path="/banners" element={<Banners />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

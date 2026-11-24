@@ -23,7 +23,9 @@ import {
   FaLink,
   FaFileAlt,
   FaPenNib,
-  FaThLarge
+  FaThLarge,
+  FaImages,
+  FaIndustry
 } from "react-icons/fa";
 
 export const SUPER_ADMIN_MENU = [
@@ -135,6 +137,20 @@ export const SUPER_ADMIN_MENU = [
     label: "Blog Posts",
     path: "/blog-posts",
     icon: FaPenNib,
+    iconColor: "#0A4DB8",
+  },
+  {
+    key: "partners",
+    label: "Partners",
+    path: "/partners",
+    icon: FaIndustry,
+    iconColor: "#0A4DB8",
+  },
+  {
+    key: "banners",
+    label: "Banners",
+    path: "/banners",
+    icon: FaImages,
     iconColor: "#0A4DB8",
   },
   {
@@ -322,7 +338,7 @@ export const getMenuByRole = (roleName) => {
 const SECTIONS = [
   { label: "Overview", keys: ["dashboard", "activity-logs"] },
   { label: "Workspace", keys: ["users", "property", "leads", "loans", "site-visits"] },
-  { label: "Insights", keys: ["seo", "footer", "page-content", "blog-posts", "reports"] },
+  { label: "Insights", keys: ["seo", "footer", "page-content", "blog-posts", "partners", "banners", "reports"] },
   { label: "System", keys: ["settings", "roles"] },
 ];
 
