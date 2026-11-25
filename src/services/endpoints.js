@@ -92,6 +92,7 @@ export const FOOTER = {
 
 export const CONTENT = {
   BASE: "/content",
+  GALLERY_IMAGE: "/content/gallery-image",
 };
 
 export const BLOG = {

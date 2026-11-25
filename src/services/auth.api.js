@@ -129,6 +129,12 @@ export const deleteFooterLinkApi = (id) => API.delete(FOOTER.LINK_BY_ID(id));
 // Page content (about_*, contact_*)
 export const getContentApi = () => API.get(CONTENT.BASE);
 export const updateContentApi = (payload) => API.put(CONTENT.BASE, payload);
+export const uploadContentGalleryApi = (formData) =>
+  API.post(CONTENT.GALLERY_IMAGE, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const deleteContentGalleryApi = (url) =>
+  API.delete(CONTENT.GALLERY_IMAGE, { data: { url } });
 
 // Blog posts
 export const getBlogPostsApi = () => API.get(BLOG.LIST);

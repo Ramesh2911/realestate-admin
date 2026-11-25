@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { FaSyncAlt, FaInfoCircle, FaPenFancy, FaEnvelopeOpenText, FaBalanceScale } from "react-icons/fa";
 import { getContentApi, updateContentApi } from "../../services/auth.api";
 import { ListHero } from "../../components/ListUI";
+import GalleryManager from "./GalleryManager";
 import "../Setting/Settings.css";
 
 // About page er section gulo — prati section ekta sub-tab, field gulo
@@ -229,11 +230,9 @@ const ABOUT_SECTIONS = [
       {
         key: "about_gallery",
         label: "Gallery Images",
-        type: "textarea",
-        rows: 4,
+        type: "gallery",
         full: true,
-        ph: "https://example.com/hq.jpg | Our Headquarters",
-        hint: "Ek line e ek image: ImageURL | Label — prothom ta boro card, achta regular size hobe.",
+        hint: "Image upload — prothom ta boro card. Drag-drop or click; caption optional.",
       },
     ],
   },
@@ -505,6 +504,21 @@ const PageContent = () => {
       readOnly: !isSuperAdmin,
       className: !isSuperAdmin ? "st-readonly" : "",
     };
+    if (f.type === "gallery") {
+      return (
+        <div className={`lp-field ${f.full ? "full" : ""}`} key={f.key}>
+          <label htmlFor={id}>{f.label}</label>
+          <GalleryManager
+            value={form[f.key] ?? ""}
+            onChange={(v) => setF(f.key, v)}
+            disabled={!isSuperAdmin}
+          />
+          {f.hint && (
+            <small style={{ color: "var(--text-light)", fontSize: 12 }}>{f.hint}</small>
+          )}
+        </div>
+      );
+    }
     return (
       <div className={`lp-field ${f.full ? "full" : ""}`} key={f.key}>
         <label htmlFor={id}>{f.label}</label>
