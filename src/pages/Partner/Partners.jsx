@@ -10,6 +10,8 @@ import {
   FaTrash,
   FaImage,
   FaGlobe,
+  FaCloudUploadAlt,
+  FaTimes,
 } from "react-icons/fa";
 import {
   getPartnersAdminApi,
@@ -27,6 +29,7 @@ import {
   StatusPill,
 } from "../../components/ListUI";
 import { useDebounced, fmtNum, fmtWhen } from "../../utils/list";
+import "./Partners.css";
 
 const EMPTY = {
   title: "No partner developers found",
@@ -65,6 +68,7 @@ const Partners = () => {
   const [formBusy, setFormBusy] = useState(false);
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState("");
+  const [dragging, setDragging] = useState(false);
   const [delTarget, setDelTarget] = useState(null);
   const [delBusy, setDelBusy] = useState(false);
   const dq = useDebounced(q, 300);
@@ -123,6 +127,19 @@ const Partners = () => {
   const onLogoFile = (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    setLogoFile(f);
+    if (logoPreview) URL.revokeObjectURL(logoPreview);
+    setLogoPreview(URL.createObjectURL(f));
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (!f || !f.type.startsWith("image/")) {
+      toast.error("Please drop an image file (PNG, SVG or WebP).");
+      return;
+    }
     setLogoFile(f);
     if (logoPreview) URL.revokeObjectURL(logoPreview);
     setLogoPreview(URL.createObjectURL(f));
@@ -450,47 +467,83 @@ const Partners = () => {
           <div className="lp-field full">
             <label>Logo *</label>
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
+              className={`pt-uploader ${dragging ? "dragging" : ""} ${
+                logoPreview || form.logo ? "has-file" : ""
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
               }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={onDrop}
             >
-              <label
-                className="lp-btn lp-btn-ghost"
-                style={{ cursor: "pointer", marginBottom: 0 }}
-              >
-                <FaImage size={12} />
-                {logoFile || form.logo ? "Change logo" : "Choose logo"}
-                <input
-                  id="pt-logo"
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={onLogoFile}
-                />
-              </label>
-              {(logoPreview || form.logo) && (
-                <img
-                  src={logoPreview || resolveImageUrl(form.logo)}
-                  alt="Logo preview"
-                  style={{
-                    width: 72,
-                    height: 48,
-                    objectFit: "contain",
-                    background: "#fff",
-                    borderRadius: 6,
-                    border: "1px solid rgba(30,76,140,.15)",
-                  }}
-                />
+              {logoPreview || form.logo ? (
+                <div className="pt-preview">
+                  <div className="pt-preview-stage">
+                    <img
+                      src={logoPreview || resolveImageUrl(form.logo)}
+                      alt="Logo preview"
+                    />
+                  </div>
+                  <div className="pt-preview-bar">
+                    <div className="pt-preview-meta">
+                      <span className="pt-preview-name">
+                        {logoFile ? logoFile.name : "Current logo"}
+                      </span>
+                      <span className="pt-preview-size">
+                        {logoFile
+                          ? `${(logoFile.size / 1024).toFixed(0)} KB`
+                          : "Partner marquee"}
+                      </span>
+                    </div>
+                    <div className="pt-preview-actions">
+                      <label className="pt-chip-btn">
+                        <FaImage size={11} />
+                        {logoFile ? "Replace" : "Change"}
+                        <input
+                          id="pt-logo"
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={onLogoFile}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="pt-chip-btn danger"
+                        onClick={() => {
+                          resetLogoState();
+                          setF("logo", "");
+                        }}
+                        aria-label="Remove logo"
+                      >
+                        <FaTimes size={11} />
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <label className="pt-drop">
+                  <span className="pt-drop-ic">
+                    <FaCloudUploadAlt size={22} />
+                  </span>
+                  <span className="pt-drop-title">
+                    Drop partner logo here <em>or click to browse</em>
+                  </span>
+                  <span className="pt-drop-sub">
+                    PNG, SVG or WebP · transparent background · square logos look
+                    cleanest in the marquee
+                  </span>
+                  <input
+                    id="pt-logo"
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={onLogoFile}
+                  />
+                </label>
               )}
-            </div>
-            <div
-              className="lp-field-hint"
-              style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}
-            >
-              PNG or SVG with transparency works best. Square logos look cleanest in the marquee.
             </div>
           </div>
           <div className="lp-field">
