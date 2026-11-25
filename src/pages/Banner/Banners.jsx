@@ -10,6 +10,8 @@ import {
   FaTrash,
   FaImage,
   FaExternalLinkAlt,
+  FaCloudUploadAlt,
+  FaTimes,
 } from "react-icons/fa";
 import {
   getBannersAdminApi,
@@ -27,6 +29,7 @@ import {
   StatusPill,
 } from "../../components/ListUI";
 import { useDebounced, fmtNum, fmtWhen } from "../../utils/list";
+import "./Banners.css";
 
 const EMPTY = {
   title: "No banners found",
@@ -65,6 +68,7 @@ const Banners = () => {
   const [formBusy, setFormBusy] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [dragging, setDragging] = useState(false);
   const [delTarget, setDelTarget] = useState(null);
   const [delBusy, setDelBusy] = useState(false);
   const dq = useDebounced(q, 300);
@@ -123,6 +127,19 @@ const Banners = () => {
   const onImageFile = (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    setImageFile(f);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(URL.createObjectURL(f));
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (!f || !f.type.startsWith("image/")) {
+      toast.error("Please drop an image file (JPG, PNG or WebP).");
+      return;
+    }
     setImageFile(f);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(URL.createObjectURL(f));
@@ -377,7 +394,7 @@ const Banners = () => {
         sub={
           formId
             ? `Banner #${formId} · changes reflect in the hero slider immediately`
-            : "Wide hero image with optional heading, subtext and link."
+            : "Wide hero image with optional heading and subtext."
         }
         footer={
           <>
@@ -426,58 +443,82 @@ const Banners = () => {
             />
           </div>
           <div className="lp-field full">
-            <label htmlFor="bn-link">Link</label>
-            <input
-              id="bn-link"
-              type="text"
-              value={form.link}
-              onChange={(e) => setF("link", e.target.value)}
-              placeholder="/properties or https://…"
-            />
-          </div>
-          <div className="lp-field full">
             <label>Banner Image *</label>
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
+              className={`bn-uploader ${dragging ? "dragging" : ""} ${
+                imagePreview || form.image ? "has-file" : ""
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
               }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={onDrop}
             >
-              <label
-                className="lp-btn lp-btn-ghost"
-                style={{ cursor: "pointer", marginBottom: 0 }}
-              >
-                <FaImage size={12} />
-                {imageFile || form.image ? "Change image" : "Choose image"}
-                <input
-                  id="bn-image"
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={onImageFile}
-                />
-              </label>
-              {(imagePreview || form.image) && (
-                <img
-                  src={imagePreview || resolveImageUrl(form.image)}
-                  alt="Banner preview"
-                  style={{
-                    width: 120,
-                    height: 60,
-                    objectFit: "cover",
-                    borderRadius: 6,
-                    border: "1px solid rgba(30,76,140,.15)",
-                  }}
-                />
+              {imagePreview || form.image ? (
+                <div className="bn-preview">
+                  <img
+                    src={imagePreview || resolveImageUrl(form.image)}
+                    alt="Banner preview"
+                  />
+                  <div className="bn-preview-bar">
+                    <div className="bn-preview-meta">
+                      <span className="bn-preview-name">
+                        {imageFile ? imageFile.name : "Current banner image"}
+                      </span>
+                      <span className="bn-preview-size">
+                        {imageFile
+                          ? `${(imageFile.size / 1024 / 1024).toFixed(2)} MB`
+                          : "1600 × 600"}
+                      </span>
+                    </div>
+                    <div className="bn-preview-actions">
+                      <label className="bn-chip-btn">
+                        <FaImage size={11} />
+                        {imageFile ? "Replace" : "Change"}
+                        <input
+                          id="bn-image"
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={onImageFile}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="bn-chip-btn danger"
+                        onClick={() => {
+                          resetImageState();
+                          setF("image", "");
+                        }}
+                        aria-label="Remove image"
+                      >
+                        <FaTimes size={11} />
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <label className="bn-drop">
+                  <span className="bn-drop-ic">
+                    <FaCloudUploadAlt size={22} />
+                  </span>
+                  <span className="bn-drop-title">
+                    Drop your banner here <em>or click to browse</em>
+                  </span>
+                  <span className="bn-drop-sub">
+                    JPG, PNG or WebP · 1600 × 600 recommended · up to 5 MB
+                  </span>
+                  <input
+                    id="bn-image"
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={onImageFile}
+                  />
+                </label>
               )}
-            </div>
-            <div
-              className="lp-field-hint"
-              style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}
-            >
-              Wide image (1600×600 recommended). JPG, PNG or WebP.
             </div>
           </div>
           <div className="lp-field">
