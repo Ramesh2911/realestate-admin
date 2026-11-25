@@ -9,6 +9,8 @@ import {
   FaEdit,
   FaTrash,
   FaImage,
+  FaCloudUploadAlt,
+  FaTimes,
 } from "react-icons/fa";
 import {
   getBlogPostsApi,
@@ -27,6 +29,7 @@ import {
   StatusPill,
 } from "../../components/ListUI";
 import { useDebounced, fmtNum, fmtWhen } from "../../utils/list";
+import "./Blog.css";
 
 const EMPTY = {
   title: "No blog posts found",
@@ -80,6 +83,7 @@ const BlogManager = () => {
   const [formBusy, setFormBusy] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [dragging, setDragging] = useState(false);
   const [delTarget, setDelTarget] = useState(null);
   const [delBusy, setDelBusy] = useState(false);
   const dq = useDebounced(q, 300);
@@ -137,6 +141,19 @@ const BlogManager = () => {
   const onImageFile = (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    setImageFile(f);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(URL.createObjectURL(f));
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (!f || !f.type.startsWith("image/")) {
+      toast.error("Please drop an image file (JPG, PNG or WebP).");
+      return;
+    }
     setImageFile(f);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(URL.createObjectURL(f));
@@ -450,59 +467,82 @@ const BlogManager = () => {
           <div className="lp-field full">
             <label>Cover Image</label>
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
+              className={`bl-uploader ${dragging ? "dragging" : ""} ${
+                imagePreview || form.image_url ? "has-file" : ""
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
               }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={onDrop}
             >
-              <label
-                className="lp-btn lp-btn-ghost"
-                style={{ cursor: "pointer", marginBottom: 0 }}
-              >
-                <FaImage size={12} />
-                {imageFile || form.image_url ? "Change image" : "Choose image"}
-                <input
-                  id="bl-image"
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={onImageFile}
-                />
-              </label>
-              {(imagePreview || form.image_url) && (
-                <button
-                  type="button"
-                  className="lp-btn lp-btn-ghost"
-                  onClick={() => {
-                    clearImageFile();
-                    setF("image_url", "");
-                  }}
-                  disabled={formBusy}
-                >
-                  Remove
-                </button>
+              {imagePreview || form.image_url ? (
+                <div className="bl-preview">
+                  <img
+                    src={imagePreview || resolveImageUrl(form.image_url)}
+                    alt="Cover preview"
+                  />
+                  <div className="bl-preview-bar">
+                    <div className="bl-preview-meta">
+                      <span className="bl-preview-name">
+                        {imageFile ? imageFile.name : "Current cover image"}
+                      </span>
+                      <span className="bl-preview-size">
+                        {imageFile
+                          ? `${(imageFile.size / 1024 / 1024).toFixed(2)} MB`
+                          : "Home page blog card"}
+                      </span>
+                    </div>
+                    <div className="bl-preview-actions">
+                      <label className="bl-chip-btn">
+                        <FaImage size={11} />
+                        {imageFile ? "Replace" : "Change"}
+                        <input
+                          id="bl-image"
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={onImageFile}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="bl-chip-btn danger"
+                        onClick={() => {
+                          clearImageFile();
+                          setF("image_url", "");
+                        }}
+                        disabled={formBusy}
+                        aria-label="Remove image"
+                      >
+                        <FaTimes size={11} />
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <label className="bl-drop">
+                  <span className="bl-drop-ic">
+                    <FaCloudUploadAlt size={22} />
+                  </span>
+                  <span className="bl-drop-title">
+                    Drop your cover image here <em>or click to browse</em>
+                  </span>
+                  <span className="bl-drop-sub">
+                    JPG, PNG or WebP · 1200 × 630 recommended · used on the home
+                    page blog card
+                  </span>
+                  <input
+                    id="bl-image"
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={onImageFile}
+                  />
+                </label>
               )}
-              {(imagePreview || form.image_url) && (
-                <img
-                  src={imagePreview || resolveImageUrl(form.image_url)}
-                  alt="Cover preview"
-                  style={{
-                    width: 72,
-                    height: 48,
-                    objectFit: "cover",
-                    borderRadius: 6,
-                    border: "1px solid rgba(30,76,140,.15)",
-                  }}
-                />
-              )}
-            </div>
-            <div
-              className="lp-field-hint"
-              style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}
-            >
-              JPG, PNG or WebP. Uploaded image is used on the home page blog card.
             </div>
           </div>
           <div className="lp-field">
